@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณค่าฝาก (Auto Default) - สำหรับผู้การอั๋น</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: bold; }
+        input, select {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box;
+        }
+        input.highlight { background-color: #f9fbe7; border-color: #cddc39; }
+        
+        .deadline-box {
+            background-color: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .deadline-title { font-weight: bold; color: #0d47a1; margin-bottom: 5px; }
+        .deadline-text { color: #1565c0; font-size: 0.95em; line-height: 1.6; }
+        .date-highlight { font-weight: bold; background: #bbdefb; padding: 2px 6px; border-radius: 4px; }
+
+        .btn-calc {
+            width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 10px;
+        }
+        .btn-calc:hover { background-color: #0056b3; }
+
+        .action-buttons { display: none; gap: 10px; margin-top: 15px; }
+        .btn-action { flex: 1; padding: 10px; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-img { background-color: #ff9800; }
+        .btn-excel { background-color: #28a745; }
+
+        .result { margin-top: 20px; padding: 15px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 8px; display: none; }
+        .result p { margin: 8px 0; color: #2e7d32; display: flex; justify-content: space-between; border-bottom: 1px dashed #c8e6c9; padding-bottom: 5px; }
+        .summary { font-size: 1.5em; font-weight: bold; text-align: center; color: #1b5e20; margin-top: 15px; background: white; padding: 10px; border-radius: 8px; border: 2px solid #a5d6a7; }
+    </style>
+</head>
+<body>
+
+    <div class="card" id="captureArea">
+        <h2>📦 ระบบคำนวณค่าฝาก</h2>
+        
+        <div class="form-group">
+            <label>📅 วันที่สินค้าเข้า (In):</label>
+            <input type="date" id="dateIn" onchange="updateDeadline()">
+        </div>
+
+        <div class="form-group">
+            <label>📝 เงื่อนไขการนับวัน:</label>
+            <select id="condition" onchange="updateDeadline()">
+                <option value="1">1. คิดทั้งวันเข้า + วันออก</option>
+                <option value="2">2. คิดวันเข้า (ไม่คิดวันออก)</option>
+                <option value="3">3. ไม่คิดวันเข้า และวันออก</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>🎁 ฟรี (วัน):</label>
+            <input type="number" id="freeDays" value="30" onkeyup="updateDeadline()" onchange="updateDeadline()">
+        </div>
+
+        <div id="deadlineBox" class="deadline-box">
+            <div class="deadline-title">💡 แจ้งลูกค้า:</div>
+            <div class="deadline-text">
+                เอาของออกภายใน: <span id="txtFreeUntil" class="date-highlight">...</span> (ฟรี)<br>
+                เริ่มเสียเงินวันที่: <span id="txtStartCharge" class="date-highlight" style="background:#ffcdd2; color:#b71c1c;">...</span>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <div class="form-group">
+            <label>📅 วันที่สินค้าออก (Out):</label>
+            <input type="date" id="dateOut">
+        </div>
+
+        <div class="form-group" style="display:flex; gap:10px;">
+            <div style="flex:1;">
+                <label>⚖️ น้ำหนัก (ตัน):</label>
+                <input type="number" id="weightVal" class="highlight" step="0.01" value="1">
+            </div>
+            <div style="flex:1;">
+                <label>💰 เรท (บาท/ตัน):</label>
+                <input type="number" id="pricePerTonDay" class="highlight" value="4">
+            </div>
+        </div>
+
+        <button class="btn-calc" onclick="calculateStorage()">🚀 คำนวณราคา</button>
+
+        <div id="resultArea" class="result">
+            <p><span>วันเข้า:</span> <span id="resDateIn"></span></p>
+            <p><span>วันออก:</span> <span id="resDateOut"></span></p>
+            <p><span>รวมวันฝาก:</span> <span id="txtTotalDays"></span></p>
+            <p><span>หักวันฟรี:</span> <span id="txtFreeDays"></span></p>
+            <p><span>วันที่คิดเงิน:</span> <span id="txtBillableDays" style="font-weight:bold;"></span></p>
+            <p><span>น้ำหนัก:</span> <span id="txtWeight"></span></p>
+            <div class="summary" id="txtTotalPrice">0.00 บาท</div>
+        </div>
+
+        <div class="action-buttons" id="actionBtns">
+            <button class="btn-action btn-img" onclick="saveImage()">📷 Save รูป</button>
+            <button class="btn-action btn-excel" onclick="saveExcel()">📊 Save Excel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentData = {};
+
+        // ฟังก์ชันตั้งค่าเริ่มต้นเมื่อเปิดโปรแกรม
+        window.onload = function() {
+            setDatesDefault();
+            updateDeadline(); // คำนวณ Deadline ทันทีที่เปิด
+        };
+
+        function setDatesDefault() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+
+            // ฟังก์ชันแปลง Date เป็น string YYYY-MM-DD สำหรับ input html
+            const toInputStr = (date) => {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            };
+
+            // ตั้งค่า 1. วันเข้า = เมื่อวาน, 2. วันออก = วันนี้
+            document.getElementById('dateIn').value = toInputStr(yesterday);
+            document.getElementById('dateOut').value = toInputStr(today);
+        }
+
+        // ฟังก์ชันแปลง Date เป็น DD/MM/YY (ปี 2 หลัก)
+        function formatDate(dateObj) {
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const y = String(dateObj.getFullYear()).slice(-2); // ตัดเอาแค่ 2 ตัวท้าย
+            return `${d}/${m}/${y}`;
+        }
+
+        function updateDeadline() {
+            const dateInStr = document.getElementById('dateIn').value;
+            const freeDays = parseInt(document.getElementById('freeDays').value) || 0;
+            const condition = document.getElementById('condition').value;
+
+            if (!dateInStr) {
+                document.getElementById('deadlineBox').style.display = 'none';
+                return;
+            }
+
+            const dIn = new Date(dateInStr);
+            let freeUntilDate = new Date(dIn);
+            
+            if (condition === "1") freeUntilDate.setDate(dIn.getDate() + freeDays - 1);
+            else if (condition === "2") freeUntilDate.setDate(dIn.getDate() + freeDays);
+            else if (condition === "3") freeUntilDate.setDate(dIn.getDate() + freeDays + 1);
+
+            let startChargeDate = new Date(freeUntilDate);
+            startChargeDate.setDate(freeUntilDate.getDate() + 1);
+
+            const box = document.getElementById('deadlineBox');
+            
+            // ใช้ formatDate DD/MM/YY
+            document.getElementById('txtFreeUntil').innerText = formatDate(freeUntilDate);
+            document.getElementById('txtStartCharge').innerText = formatDate(startChargeDate);
+            
+            box.style.display = 'block';
+        }
+
+        function calculateStorage() {
+            const dateInStr = document.getElementById('dateIn').value;
+            const dateOutStr = document.getElementById('dateOut').value;
+            const condition = document.getElementById('condition').value;
+            const freeDays = parseInt(document.getElementById('freeDays').value) || 0;
+            const weightVal = parseFloat(document.getElementById('weightVal').value) || 0;
+            const pricePerTonDay = parseFloat(document.getElementById('pricePerTonDay').value) || 0;
+
+            if (!dateInStr || !dateOutStr) {
+                alert("กรุณาใส่วันที่ให้ครบครับผู้การ!");
+                return;
+            }
+
+            const d1 = new Date(dateInStr);
+            const d2 = new Date(dateOutStr);
+            d1.setHours(0,0,0,0);
+            d2.setHours(0,0,0,0);
+
+            const diffTime = d2 - d1;
+            if (diffTime < 0) {
+                alert("วันที่ออก ต้องมาทีหลังวันที่เข้านะครับ");
+                return;
+            }
+
+            let rawDays = diffTime / (1000 * 60 * 60 * 24);
+            let totalDays = 0;
+
+            if (condition === "1") totalDays = rawDays + 1;
+            else if (condition === "2") totalDays = rawDays;
+            else if (condition === "3") totalDays = rawDays - 1;
+
+            if (totalDays < 0) totalDays = 0;
+
+            let billableDays = totalDays - freeDays;
+            if (billableDays < 0) billableDays = 0;
+
+            const totalPrice = billableDays * weightVal * pricePerTonDay;
+
+            // แสดงผลลัพธ์
+            document.getElementById('resDateIn').innerText = formatDate(d1);
+            document.getElementById('resDateOut').innerText = formatDate(d2);
+            document.getElementById('txtTotalDays').innerText = `${totalDays} วัน`;
+            document.getElementById('txtFreeDays').innerText = `-${freeDays} วัน`;
+            document.getElementById('txtBillableDays').innerText = `${billableDays} วัน`;
+            document.getElementById('txtWeight').innerText = `${weightVal.toLocaleString()} ตัน`;
+            document.getElementById('txtTotalPrice').innerText = `${totalPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`;
+
+            document.getElementById('resultArea').style.display = 'block';
+            document.getElementById('actionBtns').style.display = 'flex';
+
+            currentData = {
+                "วันที่เข้า": formatDate(d1),
+                "วันที่ออก": formatDate(d2),
+                "เงื่อนไข": condition,
+                "น้ำหนัก (ตัน)": weightVal,
+                "เรทราคา": pricePerTonDay,
+                "วันรวม": totalDays,
+                "หักฟรี": freeDays,
+                "วันคิดเงิน": billableDays,
+                "ยอดรวม (บาท)": totalPrice
+            };
+        }
+
+        function saveImage() {
+            document.querySelector('.btn-calc').style.display = 'none';
+            document.getElementById('actionBtns').style.display = 'none';
+            html2canvas(document.getElementById('captureArea')).then(canvas => {
+                let link = document.createElement('a');
+                link.download = `Storage_${Date.now()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                document.querySelector('.btn-calc').style.display = 'block';
+                document.getElementById('actionBtns').style.display = 'flex';
+            });
+        }
+
+        function saveExcel() {
+            if(!currentData["วันที่เข้า"]) { alert("กดคำนวณก่อนนะครับ"); return; }
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet([currentData]);
+            const wscols = [{wch:12}, {wch:12}, {wch:10}, {wch:12}, {wch:12}, {wch:10}, {wch:10}, {wch:12}, {wch:15}];
+            ws['!cols'] = wscols;
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.writeFile(wb, `Storage_Report_${Date.now()}.xlsx`);
+        }
+    </script>
+</body>
+</html>
