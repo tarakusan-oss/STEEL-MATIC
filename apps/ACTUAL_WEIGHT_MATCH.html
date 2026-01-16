@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actual Weight Calc | STEEL-MATIC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; padding: 10px; background-color: #f4f6f9; font-size: 14px; }
+        .container { max-width: 550px; margin: 0 auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        h2 { margin: 0; font-size: 18px; color: #1e293b; }
+        .home-btn { padding: 4px 10px; background: #e2e8f0; border-radius: 15px; text-decoration: none; color: #475569; font-size: 12px; }
+        
+        .control-group { display: flex; align-items: center; gap: 10px; padding: 10px; background: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px; margin-bottom: 5px; }
+        .control-group label { font-weight: bold; font-size: 13px; color: #92400e; white-space: nowrap; }
+        input[type="number"] { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 18px; text-align: center; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }
+        th, td { border: 1px solid #e2e8f0; padding: 4px 2px; text-align: center; overflow: hidden; }
+        th { background-color: #f8fafc; font-size: 11px; color: #64748b; height: 30px; }
+        
+        .col-no { width: 10%; }
+        .col-theo { width: 30%; }
+        .col-actual { width: 30%; } /* คอลัมน์น้ำหนักชั่งจริง */
+        .col-round { width: 30%; }
+
+        .theo-input { width: 90%; background: #ffffcc; border: 1px solid #ffd700; font-size: 16px; padding: 5px; border-radius: 3px; text-align: center; }
+        
+        .result-col { font-weight: bold; color: #059669; background: #ecfdf5; font-size: 1.3em; } 
+        .round-col { color: #92400e; font-size: 1.1em; background: #fffcf0; }
+        
+        .summary-grid { display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 5px; margin-top: 8px; background: #1e293b; padding: 8px; border-radius: 6px; color: white; text-align: center; }
+        .sum-item label { display: block; font-size: 10px; opacity: 0.7; }
+        .sum-item span { font-size: 15px; font-weight: bold; }
+        
+        .yield-box { grid-column: span 3; border-top: 1px solid #334155; padding-top: 5px; font-size: 16px; font-weight: bold; }
+        .warn-tag { display: block; font-size: 11px; margin-top: 2px; padding: 2px; border-radius: 4px; display: none; }
+        .warn-high { background: #fee2e2; color: #b91c1c; }
+        .warn-low { background: #fef3c7; color: #92400e; }
+
+        .btn-group { display: flex; gap: 5px; margin-top: 8px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; color: white; }
+        .btn-add { background: #64748b; }
+        .btn-img { background: #f59e0b; }
+        .btn-excel { background: #10b981; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="captureArea">
+    <div class="header-flex">
+        <h2>⚖️ น้ำหนักชั่งจริง (Compact Pro)</h2>
+        <a href="../index.html" class="home-btn" id="homeBtn">🏠 Home</a>
+    </div>
+
+    <div class="control-group">
+        <label>🎯 นน.ชั่งรวมทั้งหมด:</label>
+        <input type="number" id="targetWeight" placeholder="Target" oninput="calculate()">
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="col-no">No.</th>
+                <th class="col-theo">นน.ทฤษฎี</th>
+                <th class="col-actual">น้ำหนักชั่งจริง</th>
+                <th class="col-round">ปัด 5,0</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="summary-grid">
+        <div class="sum-item"><label>Σ ทฤษฎี</label><span id="sumTheo">0</span></div>
+        <div class="sum-item"><label>Σ ชั่งจริง</label><span id="sumActual">0</span></div>
+        <div class="sum-item"><label>Σ ปัด 5,0</label><span id="sumRound">0</span></div>
+        <div class="yield-box" id="yieldDisplay">
+            Yield: <span id="yieldVal">0.00%</span>
+            <div id="warnTag" class="warn-tag"></div>
+        </div>
+    </div>
+
+    <div class="btn-group" id="actionBtns">
+        <button class="btn btn-add" onclick="addRow()">+ แถว</button>
+        <button class="btn btn-img" onclick="saveImage()">📷 รูป</button>
+        <button class="btn btn-excel" onclick="saveExcel()">📊 Excel</button>
+    </div>
+</div>
+
+<script>
+    let rowCount = 10; 
+    window.onload = () => { for(let i=1; i<=rowCount; i++) addRowHtml(i); };
+
+    function addRow() { rowCount++; addRowHtml(rowCount); }
+
+    function addRowHtml(index) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index}</td>
+            <td><input type="number" class="theo-in theo-input" oninput="calculate()"></td>
+            <td class="actual-out result-col">-</td>
+            <td class="round-out round-col">-</td>
+        `;
+        document.getElementById('tableBody').appendChild(tr);
+    }
+
+    function calculate() {
+        const target = parseFloat(document.getElementById('targetWeight').value) || 0;
+        const inputs = document.querySelectorAll('.theo-in');
+        const actualCells = document.querySelectorAll('.actual-out');
+        const roundCells = document.querySelectorAll('.round-out');
+        const warnTag = document.getElementById('warnTag');
+        const yieldValSpan = document.getElementById('yieldVal');
+        
+        let totalTheo = 0;
+        let items = [];
+
+        inputs.forEach((input, i) => {
+            const v = parseFloat(input.value) || 0;
+            totalTheo += v;
+            items.push({ i, theo: v, floor: 0, remainder: 0, raw: 0 });
+        });
+
+        document.getElementById('sumTheo').innerText = totalTheo.toLocaleString();
+
+        if (totalTheo > 0 && target > 0) {
+            let currentSum = 0;
+            let totalRound = 0;
+
+            items.forEach(item => {
+                item.raw = (item.theo / totalTheo) * target;
+                item.floor = Math.floor(item.raw);
+                item.remainder = item.raw - item.floor;
+                currentSum += item.floor;
+                
+                const r5 = Math.round(item.raw / 5) * 5;
+                roundCells[item.i].innerText = item.theo > 0 ? r5 : "-";
+                totalRound += item.theo > 0 ? r5 : 0;
+            });
+
+            let gap = target - currentSum;
+            let sorted = [...items].filter(x => x.theo > 0).sort((a, b) => b.remainder - a.remainder);
+            for (let i = 0; i < Math.min(gap, sorted.length); i++) { sorted[i].floor += 1; }
+
+            items.forEach(item => {
+                actualCells[item.i].innerText = item.theo > 0 ? item.floor : "-";
+            });
+
+            const yieldPercent = (target / totalTheo) * 100;
+            yieldValSpan.innerText = yieldPercent.toFixed(2) + "%";
+            document.getElementById('sumActual').innerText = target.toLocaleString();
+            document.getElementById('sumRound').innerText = totalRound.toLocaleString();
+
+            warnTag.style.display = 'block';
+            if (yieldPercent > 101) {
+                warnTag.innerText = "⚠️ Yield เกิน 101%";
+                warnTag.className = "warn-tag warn-high";
+                yieldValSpan.style.color = "#ef4444";
+            } else if (yieldPercent < 98) {
+                warnTag.innerText = "⚠️ Yield ต่ำกว่า 98%";
+                warnTag.className = "warn-tag warn-low";
+                yieldValSpan.style.color = "#f59e0b";
+            } else {
+                warnTag.innerText = "✅ Yield ปกติ";
+                warnTag.className = "warn-tag";
+                warnTag.style.color = "#4ade80";
+                yieldValSpan.style.color = "#4ade80";
+            }
+        } else {
+            warnTag.style.display = 'none';
+            yieldValSpan.style.color = "white";
+        }
+    }
+
+    function saveImage() {
+        const btns = document.getElementById('actionBtns');
+        const home = document.getElementById('homeBtn');
+        btns.style.visibility = 'hidden'; home.style.visibility = 'hidden';
+        html2canvas(document.getElementById('captureArea')).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `ActualWeight_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            btns.style.visibility = 'visible'; home.style.visibility = 'visible';
+        });
+    }
+
+    function saveExcel() {
+        const inputs = document.querySelectorAll('.theo-in');
+        const actual = document.querySelectorAll('.actual-out');
+        const round = document.querySelectorAll('.round-out');
+        const rows = [];
+        
+        inputs.forEach((input, i) => {
+            if(input.value) {
+                rows.push({ 
+                    "ลำดับ (No.)": i+1, 
+                    "น้ำหนักทฤษฎี": parseFloat(input.value), 
+                    "น้ำหนักชั่งจริง": parseInt(actual[i].innerText) || 0,
+                    "ปัด 5,0": parseInt(round[i].innerText) || 0
+                });
+            }
+        });
+
+        rows.push({}); 
+        rows.push({ 
+            "ลำดับ (No.)": "รวมทั้งหมด (Total)", 
+            "น้ำหนักทฤษฎี": document.getElementById('sumTheo').innerText, 
+            "น้ำหนักชั่งจริง": document.getElementById('sumActual').innerText,
+            "ปัด 5,0": document.getElementById('sumRound').innerText
+        });
+        rows.push({ "ลำดับ (No.)": "Yield (%)", "น้ำหนักทฤษฎี": document.getElementById('yieldVal').innerText });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Weight_Report");
+        XLSX.writeFile(wb, `Actual_Weight_Report_${Date.now()}.xlsx`);
+    }
+</script>
+</body>
+</html>
