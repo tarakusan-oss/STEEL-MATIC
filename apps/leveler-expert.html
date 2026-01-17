@@ -2,38 +2,60 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Leveler Assistant - Professor Aun</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leveler Expert | STEEL-MATIC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        h2 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
-        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #2980b9; }
-        .result { margin-top: 20px; padding: 15px; background: #e8f4fd; border-left: 5px solid #3498db; border-radius: 5px; display: none; }
-        .warning { color: #e67e22; font-size: 14px; margin-top: 10px; font-style: italic; }
+        body { font-family: 'Prompt', sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .home-btn {
+            display: flex; align-items: center; gap: 12px; background: white; padding: 8px 16px 8px 8px;
+            border-radius: 50px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); text-decoration: none;
+            transition: all 0.3s ease; border: 1px solid #e2e8f0; margin-bottom: 24px; align-self: flex-start;
+        }
+        .home-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .home-icon-box { background-color: #2563eb; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .home-text { color: #1e293b; font-size: 13px; font-weight: 700; }
+
+        .card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); width: 100%; max-width: 450px; }
+        h2 { color: #1e293b; text-align: center; margin-bottom: 25px; font-weight: 700; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+        .input-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-weight: 700; color: #64748b; font-size: 14px; }
+        input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: 'Prompt', sans-serif; font-size: 16px; background: #f8fafc; }
+        
+        .btn-calc { width: 100%; padding: 15px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 14px; font-size: 18px; cursor: pointer; font-weight: 800; margin-top: 10px; }
+        .btn-calc:hover { opacity: 0.9; }
+
+        .result { margin-top: 25px; padding: 20px; background: #eff6ff; border-left: 5px solid #3b82f6; border-radius: 12px; display: none; }
+        .result strong { color: #1e40af; font-size: 16px; }
+        .val-text { font-size: 18px; font-weight: 800; color: #2563eb; }
+        .warning { color: #92400e; font-size: 13px; margin-top: 12px; font-style: italic; background: #fffbeb; padding: 8px; border-radius: 8px; }
     </style>
 </head>
 <body>
+
+<a href="../index.html" class="home-btn">
+    <div class="home-icon-box"><i class="fas fa-arrow-left"></i></div>
+    <span class="home-text">กลับไปที่ Dashboard</span>
+</a>
 
 <div class="card">
     <h2>🛠 Leveler Expert v1.0</h2>
     
     <div class="input-group">
-        <label>ความหนาเหล็ก (Thickness - mm)</label>
-        <input type="number" id="thick" step="0.01" placeholder="เช่น 0.90 หรือ 6.0">
+        <label>ความหนาเหล็ก (mm)</label>
+        <input type="number" id="thick" step="0.01" placeholder="เช่น 1.20">
     </div>
 
     <div class="input-group">
         <label>Yield Point (YP - MPa)</label>
-        <input type="number" id="yp" placeholder="เช่น 347">
+        <input type="number" id="yp" placeholder="เช่น 340">
     </div>
 
     <div class="input-group">
         <label>Elongation (EL - %)</label>
-        <input type="number" id="el" placeholder="เช่น 31">
+        <input type="number" id="el" placeholder="เช่น 30">
     </div>
 
     <div class="input-group">
@@ -41,46 +63,39 @@
         <input type="number" id="carbon" step="0.01" placeholder="เช่น 0.05">
     </div>
 
-    <button onclick="calculateLeveler()">คำนวณการตั้งค่าลูกรีด</button>
+    <button class="btn-calc" onclick="calculateLeveler()">🚀 คำนวณการตั้งค่า</button>
 
     <div id="resultBox" class="result">
-        <strong>📌 ข้อแนะนำการตั้งค่า:</strong><br><br>
-        • Gap ทางเข้า (Entry): <span id="entryGap"></span> mm<br>
-        • Gap ทางออก (Exit): <span id="exitGap"></span> mm<br>
+        <strong>📌 ข้อแนะนำการตั้งค่า Gap:</strong><br><br>
+        • ทางเข้า (Entry): <span id="entryGap" class="val-text"></span> mm<br>
+        • ทางออก (Exit): <span id="exitGap" class="val-text"></span> mm<br>
         <div class="warning" id="loadWarn"></div>
     </div>
 </div>
 
 <script>
+    /* Logic ดั้งเดิมของ Professor อั๋น */
     function calculateLeveler() {
         let t = parseFloat(document.getElementById('thick').value);
         let yp = parseFloat(document.getElementById('yp').value);
         let el = parseFloat(document.getElementById('el').value);
         let c = parseFloat(document.getElementById('carbon').value);
-
-        if (isNaN(t) || isNaN(yp)) { alert('บอสคะ! ใส่ข้อมูลความหนาและ YP ให้ครบก่อนนะ!'); return; }
-
-        // สูตรคำนวณสไตล์ Professor อั๋น
+        if (isNaN(t) || isNaN(yp)) { alert('ใส่ข้อมูลความหนาและ YP ให้ครบก่อนนะครับ!'); return; }
+        
         let entry = t * (0.8 - (yp / 5000));
         let exit = t * (1 + (yp / 12000)) - (el * 0.0005);
 
         document.getElementById('entryGap').innerText = entry.toFixed(3);
         document.getElementById('exitGap').innerText = exit.toFixed(3);
         
-        // วิเคราะห์ค่า Carbon
         let warnText = "";
-        if (c > 0.15) { warnText = "⚠️ คำเตือน: คาร์บอนสูง เหล็กจะแข็งและกรอบ ระวังโหลดมอเตอร์!"; }
-        else if (t > 4.0) { warnText = "⚠️ คำเตือน: เหล็กหนามาก ตรวจสอบ Backup Roll ทั้ง 5 จุดให้แน่นหนา"; }
-        else { warnText = "✅ สถานะ: สเปกปกติสำหรับเครื่องรีดของบอส"; }
+        if (c > 0.15) { warnText = "⚠️ คำเตือน: คาร์บอนสูง เหล็กแข็ง ระวังโหลดมอเตอร์!"; }
+        else if (t > 4.0) { warnText = "⚠️ คำเตือน: เหล็กหนา ตรวจเช็ก Backup Roll ทั้ง 5 จุด"; }
+        else { warnText = "✅ สถานะ: สเปกปกติสำหรับเครื่องรีดของคุณ"; }
         
         document.getElementById('loadWarn').innerText = warnText;
         document.getElementById('resultBox').style.display = 'block';
     }
 </script>
-   <button onclick="window.location.href='../index.html'" 
-        style="background: #f0f2f5; border: 1px solid #ddd; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-family: 'Sarabun', sans-serif; margin-bottom: 15px;">
-    ⬅️ กลับไปที่ Dashboard
-</button>
 </body>
- 
 </html>
