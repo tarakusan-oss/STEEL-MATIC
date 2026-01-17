@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CALSTEEL V.2.7.2 | STEEL-MATIC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f1f5f9; font-family: 'Sarabun', sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input, select { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(56, 189, 248, 0.3) !important; color: white !important; }
+        input:focus { border-color: #38bdf8 !important; outline: none; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .btn-primary { background: linear-gradient(135deg, #38bdf8, #0ea5e9); transition: all 0.2s; }
+        .btn-primary:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="min-h-screen p-4 pb-20">
+    <div id="app" class="max-w-md mx-auto">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">CALSTEEL V.2.7.2</h1>
+            <p class="text-slate-400 text-sm">Precision Calculation System</p>
+        </div>
+
+        <div id="loginScreen" class="glass-panel p-8 rounded-3xl text-center">
+            <i class="fas fa-lock text-4xl text-blue-400 mb-4"></i>
+            <h2 class="text-xl mb-6">กรุณาระบุรหัสผ่าน</h2>
+            <input type="password" id="password" placeholder="••••" class="w-full text-center text-2xl p-3 rounded-xl mb-4 tracking-[1em]">
+            <button onclick="login()" class="btn-primary w-full p-4 rounded-xl font-bold text-lg shadow-lg">เข้าสู่ระบบ</button>
+        </div>
+
+        <div id="mainMenu" style="display: none;" class="grid gap-4">
+            <button onclick="showCalculator('weight')" class="glass-panel p-6 rounded-2xl flex items-center gap-4 hover:border-blue-400 transition-all">
+                <div class="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400"><i class="fas fa-weight-hanging text-xl"></i></div>
+                <div class="text-left"><h3 class="font-bold">คำนวณน้ำหนักเหล็ก</h3><p class="text-xs text-slate-400">แผ่นรีดเย็น, GI, EG, สแตนเลส</p></div>
+            </button>
+            <button onclick="showCalculator('slit')" class="glass-panel p-6 rounded-2xl flex items-center gap-4 hover:border-cyan-400 transition-all">
+                <div class="w-12 h-12 bg-cyan-500/20 rounded-full flex items-center justify-center text-cyan-400"><i class="fas fa-scroll text-xl"></i></div>
+                <div class="text-left"><h3 class="font-bold">คำนวณเหล็ก SLIT</h3><p class="text-xs text-slate-400">คำนวณ OD, ความยาว, น้ำหนักคอยล์</p></div>
+            </button>
+        </div>
+
+        <div id="weightCalculator" style="display: none;" class="glass-panel p-6 rounded-3xl">
+            <button onclick="showMainMenu()" class="text-slate-400 mb-4 flex items-center gap-2 text-sm"><i class="fas fa-arrow-left"></i> กลับเมนูหลัก</button>
+            <h2 class="text-xl font-bold mb-4 text-blue-400 flex items-center gap-2"><i class="fas fa-layer-group"></i> คำนวณเหล็กแผ่น</h2>
+            
+            <div class="space-y-4">
+                <div><label class="block text-xs text-slate-400 mb-1 ml-1">ประเภทเหล็ก</label>
+                    <select id="steelType" onchange="updateCoatingAndGrade()" class="w-full p-3 rounded-xl"></select></div>
+                
+                <div id="coatingGroup"><label class="block text-xs text-slate-400 mb-1 ml-1">ชั้นเคลือบ</label>
+                    <select id="coating" class="w-full p-3 rounded-xl"></select></div>
+                
+                <div id="gradeGroup" style="display:none;"><label class="block text-xs text-slate-400 mb-1 ml-1">เกรด (ความหนาแน่น)</label>
+                    <select id="grade" class="w-full p-3 rounded-xl"></select></div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">หนา (mm)</label>
+                        <input type="number" id="thickness" step="any" class="w-full p-3 rounded-xl"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">กว้าง (mm)</label>
+                        <input type="number" id="width" step="any" class="w-full p-3 rounded-xl"></div>
+                </div>
+
+                <div><label class="block text-xs text-slate-400 mb-1 ml-1">ยาว (mm)</label>
+                    <input type="number" id="length" step="any" class="w-full p-3 rounded-xl"></div>
+
+                <hr class="border-slate-700 my-4">
+
+                <div class="grid grid-cols-2 gap-3 bg-blue-500/5 p-3 rounded-2xl border border-blue-500/20">
+                    <div><label class="block text-xs text-blue-400 font-bold mb-1 ml-1">จำนวน (แผ่น)</label>
+                        <input type="number" id="numSheets" step="any" class="w-full p-3 rounded-xl !border-blue-500/50"></div>
+                    <div><label class="block text-xs text-emerald-400 font-bold mb-1 ml-1">น้ำหนักรวม (kg)</label>
+                        <input type="number" id="totalWeight" step="any" class="w-full p-3 rounded-xl !border-emerald-500/50"></div>
+                </div>
+
+                <button onclick="calculateWeight()" class="btn-primary w-full p-4 rounded-xl font-bold mt-2 shadow-lg">คำนวณข้อมูล</button>
+                <div id="weightResult" class="mt-4 p-4 rounded-xl bg-slate-800 text-center font-bold text-blue-300 border border-slate-700"></div>
+            </div>
+        </div>
+
+        <div id="slitCalculator" style="display: none;" class="glass-panel p-6 rounded-3xl">
+            <button onclick="showMainMenu()" class="text-slate-400 mb-4 flex items-center gap-2 text-sm"><i class="fas fa-arrow-left"></i> กลับเมนูหลัก</button>
+            <h2 class="text-xl font-bold mb-4 text-cyan-400 flex items-center gap-2"><i class="fas fa-compact-disc"></i> คำนวณเหล็ก SLIT</h2>
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">ประเภทเหล็ก</label>
+                        <select id="slitSteelType" onchange="updateSlitCoating()" class="w-full p-3 rounded-xl text-sm"></select></div>
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">ชั้นเคลือบ/เกรด</label>
+                        <select id="slitCoating" class="w-full p-3 rounded-xl text-sm"></select></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">หนา (mm)</label>
+                        <input type="number" id="slitThickness" step="any" class="w-full p-3 rounded-xl"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">หน้ากว้าง (mm)</label>
+                        <input type="number" id="slitWidth" step="any" class="w-full p-3 rounded-xl"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">น้ำหนัก (kg)</label>
+                        <input type="number" id="slitWeight" step="any" class="w-full p-3 rounded-xl"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1 ml-1">ID (mm)</label>
+                        <input type="number" id="slitId" placeholder="508, 610" class="w-full p-3 rounded-xl"></div>
+                </div>
+
+                <hr class="border-slate-700 my-2">
+
+                <div><label class="block text-xs text-orange-400 font-bold mb-1 ml-1 text-center italic">ปรับ OD เพื่อคำนวณย้อนกลับ</label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500">OD:</span>
+                        <input type="number" id="slitOd" step="any" class="w-full p-3 rounded-xl !border-orange-500/50" oninput="recalculateWeight()">
+                        <span class="text-xs text-slate-500">mm.</span>
+                    </div>
+                </div>
+
+                <div><label class="block text-xs text-cyan-400 font-bold mb-1 ml-1 text-center">ความยาวรวม (เมตร)</label>
+                    <input type="number" id="slitLength" step="any" class="w-full p-3 rounded-xl !border-cyan-500/50"></div>
+
+                <button onclick="calculateSlit()" class="btn-primary w-full p-4 rounded-xl font-bold mt-2">คำนวณเบื้องต้น</button>
+                <div id="slitResult" class="mt-4 p-4 rounded-xl bg-slate-800 text-center text-sm font-bold text-cyan-300 border border-slate-700"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- LOGIC เดิมจาก V2.7.2 (ห้ามเปลี่ยน) ---
+        const STEEL_TYPES = {
+            'CR': { name: 'เหล็กรีดเย็น (CR)', density: 7.85, coatings: {'ไม่มีชั้นเคลือบ': 0} },
+            'GI': {
+                name: 'เหล็กชุบสังกะสี (GI)',
+                density: 7.85,
+                coatings: {
+                    'Z06': 90, 'Z08': 120, 'Z10': 150, 'Z12': 183, 'Z15': 150,
+                    'Z18': 244, 'Z20': 200, 'Z22': 305, 'Z25': 250, 'Z27': 381, 'F06': 90, 'F08': 120
+                }
+            },
+            'EG': { name: 'เหล็กชุบสังกะสีด้วยไฟฟ้า (EG)', density: 7.85, coatings: {'E8/E8': 18, 'E16/E16': 36, 'E24/24': 54} },
+            'GZ': {
+                name: 'เหล็ก GZ (ZAM)',
+                density: 7.85,
+                coatings: { 'K06': 90, 'K08': 120, 'K10': 100, 'K12': 183, 'K14': 203, 'K18': 244 }
+            },
+            'AL': { name: 'เหล็กแผ่นเคลือบอลูมิเนียม (AL)', density: 7.85, coatings: {'80': 0, '120': 0} },
+            'HR': { name: 'เหล็กรีดร้อน (HR)', density: 7.85, coatings: {'ไม่มีชั้นเคลือบ': 0} },
+            'SL': {
+                name: 'เหล็กสแตนเลส (SL)',
+                density: 7.85,
+                grades: { '304=7.93': 7.93, '430=7.75': 7.75, '442=7.7': 7.7 }
+            }
+        };
+
+        function login() {
+            const password = document.getElementById('password').value;
+            if (password === "1432") {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainMenu').style.display = 'grid';
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง');
+            }
+        }
+
+        function showMainMenu() {
+            document.getElementById('weightCalculator').style.display = 'none';
+            document.getElementById('slitCalculator').style.display = 'none';
+            document.getElementById('mainMenu').style.display = 'grid';
+        }
+        
+        function showCalculator(type) {
+            document.getElementById('mainMenu').style.display = 'none';
+            if (type === 'weight') {
+                document.getElementById('weightCalculator').style.display = 'block';
+                populateSteelTypes('steelType');
+                updateCoatingAndGrade();
+            } else if (type === 'slit') {
+                document.getElementById('slitCalculator').style.display = 'block';
+                populateSteelTypes('slitSteelType');
+                updateSlitCoating();
+            }
+        }
+
+        function populateSteelTypes(selectId) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '';
+            for (const [key, value] of Object.entries(STEEL_TYPES)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = value.name;
+                select.appendChild(option);
+            }
+        }
+
+        function updateCoatingAndGrade() {
+            const steelType = document.getElementById('steelType').value;
+            const coatingSelect = document.getElementById('coating');
+            const gradeSelect = document.getElementById('grade');
+            const coatingGroup = document.getElementById('coatingGroup');
+            const gradeGroup = document.getElementById('gradeGroup');
+            
+            coatingSelect.innerHTML = '';
+            gradeSelect.innerHTML = '';
+            
+            if (STEEL_TYPES[steelType].coatings) {
+                populateOptions(coatingSelect, STEEL_TYPES[steelType].coatings);
+                coatingGroup.style.display = 'block';
+                gradeGroup.style.display = 'none';
+            } else if (STEEL_TYPES[steelType].grades) {
+                populateOptions(gradeSelect, STEEL_TYPES[steelType].grades);
+                gradeGroup.style.display = 'block';
+                coatingGroup.style.display = 'none';
+            }
+        }
+
+        function updateSlitCoating() {
+            const steelType = document.getElementById('slitSteelType').value;
+            const coatingSelect = document.getElementById('slitCoating');
+            coatingSelect.innerHTML = '';
+            if (STEEL_TYPES[steelType].coatings) {
+                populateOptions(coatingSelect, STEEL_TYPES[steelType].coatings);
+            } else if (STEEL_TYPES[steelType].grades) {
+                populateOptions(coatingSelect, STEEL_TYPES[steelType].grades);
+            }
+        }
+
+        function populateOptions(selectElement, options) {
+            for (const [key, value] of Object.entries(options)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = key;
+                selectElement.appendChild(option);
+            }
+        }
+
+        // --- Logic คำนวณแผ่นย้อนกลับ ---
+        function calculateWeight() {
+            const steelType = document.getElementById('steelType').value;
+            const coating = document.getElementById('coating').value;
+            const grade = document.getElementById('grade').value;
+            const thickness = parseFloat(document.getElementById('thickness').value);
+            const width = parseFloat(document.getElementById('width').value);
+            const length = parseFloat(document.getElementById('length').value);
+            const numSheets = parseFloat(document.getElementById('numSheets').value);
+            const totalWeight = parseFloat(document.getElementById('totalWeight').value);
+        
+            let density = STEEL_TYPES[steelType].density;
+            if (steelType === 'SL') { density = STEEL_TYPES[steelType].grades[grade]; }
+        
+            let steelWeightPerMm = density * thickness;
+            if (STEEL_TYPES[steelType].coatings) {
+                const coatingWeight = STEEL_TYPES[steelType].coatings[coating] / 1000;
+                steelWeightPerMm += coatingWeight;
+            }
+        
+            const area = (width / 1000) * (length / 1000);
+            const lastModified = document.activeElement.id;
+        
+            if (['thickness', 'width', 'length', 'numSheets'].includes(lastModified) || (lastModified !== 'totalWeight' && !isNaN(numSheets))) {
+                let weight = steelWeightPerMm * area * numSheets;
+                const finalWeight = Math.round(weight);
+                document.getElementById('totalWeight').value = finalWeight;
+                document.getElementById('weightResult').innerHTML = `<i class="fas fa-check-circle text-emerald-400"></i> น้ำหนักรวม: ${finalWeight.toLocaleString()} กก.`;
+            } else if (lastModified === 'totalWeight') {
+                const calculatedSheets = Math.round(totalWeight / (steelWeightPerMm * area));
+                document.getElementById('numSheets').value = calculatedSheets;
+                document.getElementById('weightResult').innerHTML = `<i class="fas fa-list-ol text-blue-400"></i> จำนวนแผ่น: ${calculatedSheets.toLocaleString()} แผ่น`;
+            }
+        }
+
+        // --- Logic Slit และการย้อนกลับ ---
+        function calculateSlit() {
+            const steelType = document.getElementById('slitSteelType').value;
+            const coating = document.getElementById('slitCoating').value;
+            const thickness = parseFloat(document.getElementById('slitThickness').value);
+            const width = parseFloat(document.getElementById('slitWidth').value);
+            const weight = parseFloat(document.getElementById('slitWeight').value);
+            const id = parseFloat(document.getElementById('slitId').value);
+
+            let density = STEEL_TYPES[steelType].density;
+            if (steelType === 'SL') { density = STEEL_TYPES[steelType].grades[coating]; }
+
+            const length = weight / (width / 1000) / density / thickness;
+            const od = Math.sqrt((4 * weight) / (Math.PI * (density * 1000) * (width / 1000)) + (id / 1000)**2) * 1000;
+
+            document.getElementById('slitOd').value = od.toFixed(2);
+            document.getElementById('slitLength').value = length.toFixed(2);
+            document.getElementById('slitResult').innerHTML = `OD = ${od.toFixed(1)} mm. | ยาว = ${length.toLocaleString()} m.`;
+        }
+
+        function recalculateWeight() {
+            const steelType = document.getElementById('slitSteelType').value;
+            const coating = document.getElementById('slitCoating').value;
+            const thickness = parseFloat(document.getElementById('slitThickness').value);
+            const width = parseFloat(document.getElementById('slitWidth').value);
+            const id = parseFloat(document.getElementById('slitId').value);
+            const od = parseFloat(document.getElementById('slitOd').value);
+
+            let density = STEEL_TYPES[steelType].density;
+            if (steelType === 'SL') { density = STEEL_TYPES[steelType].grades[coating]; }
+
+            if (id && od) {
+                const newWeight = (Math.PI * (density * 1000) * (width / 1000) * ((od / 1000)**2 - (id / 1000)**2)) / 4;
+                const newLength = newWeight / (width / 1000) / density / thickness;
+                document.getElementById('slitWeight').value = newWeight.toFixed(1);
+                document.getElementById('slitLength').value = newLength.toFixed(0);
+                document.getElementById('slitResult').innerHTML = `คำนวณย้อนจาก OD: Weight = ${newWeight.toFixed(1)} kg.`;
+            }
+        }
+
+        function recalculateFromLength() {
+            const steelType = document.getElementById('slitSteelType').value;
+            const coating = document.getElementById('slitCoating').value;
+            const thickness = parseFloat(document.getElementById('slitThickness').value);
+            const width = parseFloat(document.getElementById('slitWidth').value);
+            const id = parseFloat(document.getElementById('slitId').value);
+            const length = parseFloat(document.getElementById('slitLength').value);
+
+            let density = STEEL_TYPES[steelType].density;
+            if (steelType === 'SL') { density = STEEL_TYPES[steelType].grades[coating]; }
+
+            if (id && length) {
+                const newWeight = length * (width / 1000) * thickness * density;
+                const od = Math.sqrt((4 * newWeight) / (Math.PI * (density * 1000) * (width / 1000)) + (id / 1000)**2) * 1000;
+                document.getElementById('slitWeight').value = newWeight.toFixed(1);
+                document.getElementById('slitOd').value = od.toFixed(2);
+                document.getElementById('slitResult').innerHTML = `คำนวณจากยาว: ${newWeight.toFixed(1)} kg. | OD: ${od.toFixed(1)}`;
+            }
+        }
+
+        // --- Event Listeners ---
+        window.onload = function() {
+            document.getElementById('password').addEventListener('keyup', e => { if(e.key==='Enter') login(); });
+            document.getElementById('slitLength').addEventListener('input', recalculateFromLength);
+            
+            // Enter key calculation
+            ['thickness', 'width', 'length', 'numSheets', 'totalWeight'].forEach(id => {
+                document.getElementById(id).addEventListener('keyup', e => { if(e.key==='Enter') calculateWeight(); });
+            });
+            ['slitThickness', 'slitWidth', 'slitWeight', 'slitId'].forEach(id => {
+                document.getElementById(id).addEventListener('keyup', e => { if(e.key==='Enter') calculateSlit(); });
+            });
+        };
+    </script>
+</body>
+</html>
