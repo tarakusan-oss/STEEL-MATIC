@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคำนวณต้นทุน - SLIT V.13 (Final Stable)</title>
+    <title>ระบบคำนวณต้นทุน - SLIT V.13.1 (With Home Btn)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -11,10 +11,19 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
         
         body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f7; color: #2c3e50; padding: 20px; }
-        .container { max-width: 950px; margin: 0 auto; background: white; padding: 35px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 35px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
         
-        h1 { color: #2c3e50; text-align: center; border-bottom: 4px solid #e74c3c; padding-bottom: 15px; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 4px solid #e74c3c; padding-bottom: 15px; margin-top: 10px; }
         .sub-title { text-align: center; color: #7f8c8d; font-size: 0.9em; margin-bottom: 25px; }
+
+        /* Home Button */
+        .btn-home {
+            position: absolute; top: 20px; left: 20px;
+            text-decoration: none; background: #95a5a6; color: white; 
+            padding: 8px 15px; border-radius: 20px; font-size: 0.9em; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn-home:hover { background: #7f8c8d; transform: translateY(-2px); }
 
         /* Box Styles */
         .box { border: 1px solid #e0e0e0; padding: 25px; border-radius: 10px; margin-bottom: 25px; position: relative; background: #fff; }
@@ -75,6 +84,8 @@
 <body>
 
 <div class="container" id="captureArea">
+    <a href="../index.html" class="btn-home">🏠 กลับหน้าหลัก</a>
+
     <h1>🐻 Factory Cost Calculator V.13</h1>
     <div class="sub-title">ระบบคำนวณต้นทุน - SLIT (Version สมบูรณ์)</div>
 
