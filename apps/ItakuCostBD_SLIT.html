@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคำนวณต้นทุน - SLIT Mode Only (V.7)</title>
+    <title>ระบบคำนวณต้นทุน - SLIT V.13 (Final Stable)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
         
@@ -27,8 +30,14 @@
         }
         .unit { width: 70px; margin-left: 10px; color: #7f8c8d; font-size: 0.9em; }
 
-        /* Auto Fill Style */
+        /* Highlight Inputs */
         .auto-fill { background-color: #eaf2f8; color: #2980b9; font-weight: bold; border: 1px solid #a9cce3; cursor: not-allowed; }
+        .highlight-hp { background-color: #fff8e1; color: #d35400; font-weight: bold; border: 1px solid #f39c12; }
+        .cost-input { background-color: #f4ecf7; border: 1px solid #9b59b6 !important; color: #8e44ad; }
+        .highlight-pallet { background-color: #e8daef; color: #8e44ad; font-weight: bold; border: 1px solid #af7ac5; }
+        .highlight-coil { background-color: #d6eaf8; border: 1px solid #3498db !important; color: #2e86c1; font-weight: bold; }
+        .highlight-recoil { background-color: #d1f2eb; border: 1px solid #2ecc71 !important; color: #27ae60; font-weight: bold; }
+        .highlight-pack { background-color: #fadbd8; border: 1px solid #e74c3c !important; color: #c0392b; font-weight: bold; }
 
         /* Checkbox */
         .checkbox-wrapper { flex: 1.5; display: flex; align-items: center; gap: 10px; }
@@ -38,8 +47,18 @@
         .btn-calc { 
             width: 100%; padding: 18px; border: none; background: #27ae60; color: white; 
             font-size: 1.5em; font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+            margin-bottom: 15px;
         }
         .btn-calc:hover { background: #219150; transform: translateY(-3px); }
+
+        /* Export Buttons */
+        .export-group { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        .btn-export {
+            padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white;
+            display: flex; align-items: center; gap: 5px; font-size: 1em;
+        }
+        .btn-excel { background: #217346; } .btn-excel:hover { background: #1e6b40; }
+        .btn-img { background: #e67e22; } .btn-img:hover { background: #d35400; }
 
         /* Result Area */
         #resultArea { margin-top: 35px; display: none; background: #fffde7; padding: 25px; border-radius: 12px; border: 2px dashed #f1c40f; }
@@ -50,13 +69,14 @@
         
         .sub-total-row { background: #fdf2e9; color: #d35400; font-weight: bold; }
         .grand-total-row { background: #d5f5e3; color: #196f3d; font-weight: bold; font-size: 1.3em; }
+        .per-kg-row { background: #2c3e50; color: #f1c40f; font-weight: bold; font-size: 1.4em; text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🐻 Factory Cost Calculator V.7 (SLIT ONLY)</h1>
-    <div class="sub-title">ระบบคำนวณต้นทุน - เฉพาะงานผ่า (Real HP DB)</div>
+<div class="container" id="captureArea">
+    <h1>🐻 Factory Cost Calculator V.13</h1>
+    <div class="sub-title">ระบบคำนวณต้นทุน - SLIT (Version สมบูรณ์)</div>
 
     <div class="box">
         <div class="box-title">1. ข้อมูลวัตถุดิบ (Raw Material)</div>
@@ -77,9 +97,15 @@
             <input type="number" id="thickness" placeholder="เช่น 1.2" oninput="autoFillParams()"> <span class="unit">mm</span>
         </div>
         <div class="row">
-            <label>น้ำหนักม้วน (Coil Weight):</label>
+            <label>น้ำหนักม้วนรวม (Total Weight):</label>
             <input type="number" id="weight" placeholder="5000"> <span class="unit">kg</span>
         </div>
+        
+        <div class="row">
+            <label style="color: #2980b9;">🌀 จำนวนม้วน (Coil Qty):</label>
+            <input type="number" id="coilQty" class="highlight-coil" value="1" min="1"> <span class="unit">ม้วน</span>
+        </div>
+
         <div class="row">
             <label>หน้ากว้าง (Width):</label>
             <input type="number" id="width" placeholder="1219"> <span class="unit">mm</span>
@@ -90,40 +116,33 @@
         </div>
     </div>
 
-    <div class="box">
-        <div class="box-title">2. ตั้งค่าต้นทุน (Cost Rate)</div>
-        <div class="row">
-            <label>ค่าแรงต่อชั่วโมง (Labor Rate):</label>
-            <input type="number" id="laborRate" value="75"> <span class="unit">บาท/ชม.</span>
-        </div>
-        <div class="row">
-            <label>จำนวนคนงาน (Manpower):</label>
-            <input type="number" id="manpower" value="5"> <span class="unit">คน</span>
-        </div>
-        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
-        <div class="row">
-            <label>ค่าไฟฟ้าต่อหน่วย (Electricity Rate):</label>
-            <input type="number" id="elecRate" value="5.0"> <span class="unit">บาท/Unit</span>
-        </div>
-        <div class="row">
-            <label style="color:#7f8c8d; font-weight:normal;">*Load Factor Fix ที่ 80% / Eff 90%</label>
-        </div>
-    </div>
-
     <div id="slitSection" class="box">
-        <div class="box-title">3. ตั้งค่าเครื่อง SLIT (Auto DB) 🌀</div>
+        <div class="box-title">2. ข้อมูลเครื่อง SLIT (Auto DB) 🌀</div>
         
         <div class="row">
             <label>กำลังมอเตอร์ (Horsepower):</label>
             <input type="number" id="slitHP" class="auto-fill" readonly> <span class="unit">HP</span>
         </div>
-        <div class="row">
+        
+        <div class="row" style="background: #fff8e1; border: 1px solid #f39c12; padding: 10px; border-radius: 6px;">
+            <label style="color:#d35400;">⚡ %HP Real Load (ตามความหนา):</label>
+            <input type="text" id="hpLoadShow" class="highlight-hp" readonly value="-" style="width: 80px; text-align:center;"> 
+            <span style="font-size:0.8em; color:#d35400; margin-left:10px;">(จาก DB)</span>
+            <input type="number" id="percentHP" style="width: 60px; margin-left: 10px;" placeholder="Manual"> 
+        </div>
+
+        <div class="row" style="margin-top: 15px;">
             <label>ความเร็วเครื่อง (Speed):</label>
             <input type="number" id="slitSpeed" class="auto-fill" readonly> <span class="unit">m/min</span>
         </div>
         <div class="row">
             <label>เวลาตั้งมีด (Setup Time):</label>
             <input type="number" id="slitSetup" class="auto-fill" readonly> <span class="unit">min</span>
+        </div>
+        
+        <div class="row">
+            <label style="color: #27ae60;">⏱️ เวลาเอาลูกออก (Recoil Out):</label>
+            <input type="number" id="recoilOutTime" class="highlight-recoil" value="20"> <span class="unit">min/ม้วน</span>
         </div>
 
         <div class="row" style="margin-top: 20px;">
@@ -143,13 +162,55 @@
         <input type="hidden" id="dbCoilBackTime">
     </div>
 
+    <div class="box">
+        <div class="box-title">3. ตั้งค่าต้นทุน (Cost Settings) 💰</div>
+        
+        <div class="row" style="background: #e8daef; border: 1px solid #af7ac5; padding: 10px; border-radius: 6px;">
+            <label style="color:#8e44ad;">📦 จำนวนพาเลท (Pallet Qty):</label>
+            <input type="number" id="palletQty" class="highlight-pallet" value="0" placeholder="0"> <span class="unit">ลัง</span>
+        </div>
+        <div class="row" style="background: #e8daef; border: 1px solid #af7ac5; padding: 10px; border-radius: 6px; margin-top: -10px;">
+            <label style="color:#8e44ad;">🪵 ค่าไม้ต่อลัง (Pallet Price):</label>
+            <input type="number" id="palletPrice" class="highlight-pallet" value="400"> <span class="unit">บาท</span>
+        </div>
+
+        <div class="row" style="background: #fadbd8; border: 1px solid #e74c3c; padding: 10px; border-radius: 6px; margin-top: 15px;">
+            <label style="color:#c0392b;">⏱️ เวลาแพ็คต่อลัง (Packing Time):</label>
+            <input type="number" id="packingTimePerPallet" class="highlight-pack" value="20"> <span class="unit">min/ลัง</span>
+        </div>
+
+        <div class="row" style="margin-top: 15px;">
+            <label style="color:#8e44ad;">🏢 ค่าโสหุ้ย (Overhead):</label>
+            <input type="number" id="overheadCost" class="cost-input" value="500"> <span class="unit">บาท/งาน</span>
+        </div>
+        <div class="row">
+            <label style="color:#8e44ad;">🚜 ค่าเคลื่อนย้าย (Handling):</label>
+            <input type="number" id="handlingCost" class="cost-input" value="100"> <span class="unit">บาท/งาน</span>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <div class="row">
+            <label>ค่าแรงต่อชั่วโมง (Labor Rate):</label>
+            <input type="number" id="laborRate" value="75"> <span class="unit">บาท/ชม.</span>
+        </div>
+        <div class="row">
+            <label>จำนวนคนงาน (Manpower):</label>
+            <input type="number" id="manpower" value="5"> <span class="unit">คน</span>
+        </div>
+        <div class="row">
+            <label>ค่าไฟฟ้าต่อหน่วย (Electricity Rate):</label>
+            <input type="number" id="elecRate" value="5.0"> <span class="unit">บาท/Unit</span>
+        </div>
+    </div>
+
     <button class="btn-calc" onclick="calculate()">💰 คำนวณต้นทุนการผลิต (Calculate Cost) 💰</button>
 
     <div id="resultArea">
         <h2 style="text-align: center; color: #d35400;">📊 สรุปต้นทุนการผลิต (Production Cost)</h2>
         <div id="warningMsg" style="color: red; text-align: center; font-weight: bold; margin-bottom: 10px;"></div>
         
-        <table>
+        <table id="resultTable">
             <thead>
                 <tr>
                     <th width="40%">รายการ (Item)</th>
@@ -160,7 +221,7 @@
             <tbody id="resultBody"></tbody>
             <tfoot>
                 <tr class="sub-total-row">
-                    <td colspan="2">1. รวมเวลาผลิต (Total Time)</td>
+                    <td colspan="2">1. รวมเวลาผลิต (Total Labor Time)</td>
                     <td id="grandTime">0.00 นาที</td>
                 </tr>
                 <tr>
@@ -168,37 +229,59 @@
                     <td id="laborCostTotal">0.00 บาท</td>
                 </tr>
                 <tr>
-                    <td colspan="2">3. ต้นทุนค่าไฟฟ้า (Energy Cost) <small style="color:gray;">(HP Real x Load 80%)</small></td>
+                    <td colspan="2">3. ต้นทุนค่าไฟฟ้า (Energy Cost) <small style="color:gray; font-size:0.8em;" id="energyDetailText">(คิดเฉพาะ Setup+Run)</small></td>
                     <td id="energyCostTotal">0.00 บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="2">4. ค่าไม้พาเลท (Pallet Cost)</td>
+                    <td id="palletCostTotal">0.00 บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="2">5. ค่าโสหุ้ย (Overhead)</td>
+                    <td id="overheadTotal">0.00 บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="2">6. ค่าเคลื่อนย้าย (Handling)</td>
+                    <td id="handlingTotal">0.00 บาท</td>
                 </tr>
                 <tr class="grand-total-row">
                     <td colspan="2" style="text-align: center;">รวมต้นทุนทั้งสิ้น (Grand Total)</td>
                     <td id="grandTotalCost">0.00 บาท</td>
                 </tr>
+                <tr class="per-kg-row">
+                    <td colspan="2" style="text-align: center;">💰 ต้นทุนต่อกิโลกรัม (Cost per Kg) 💰</td>
+                    <td id="costPerKg">0.00 THB/kg</td>
+                </tr>
             </tfoot>
         </table>
+
+        <div class="export-group">
+            <button class="btn-export btn-excel" onclick="exportToExcel()">
+                📥 Export Excel
+            </button>
+            <button class="btn-export btn-img" onclick="saveAsImage()">
+                📸 Save Image
+            </button>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- 💾 DATABASE (Updated with REAL HP) ---
-    // น้องหมีเนยคงค่า Database เดิมไว้เป๊ะๆ ตามที่ท่านสั่งค่ะ
     const machineDB = {
         "S1": [
-            { min: 0, max: 1.2, speed: 100, setup: 25, break: 10, back: 15, hp: 290 },
-            { min: 1.21, max: 2.3, speed: 80, setup: 25, break: 10, back: 15, hp: 290 }
+            { min: 0, max: 1.2, speed: 100, setup: 25, break: 10, back: 15, hp: 290, load: 60 },
+            { min: 1.21, max: 2.3, speed: 80, setup: 25, break: 10, back: 15, hp: 290, load: 75 }
         ],
         "S2": [
-            { min: 0, max: 3.19, speed: 80, setup: 25, break: 10, back: 15, hp: 923 },
-            { min: 3.2, max: 9.99, speed: 60, setup: 25, break: 10, back: 15, hp: 923 }
+            { min: 0, max: 3.19, speed: 80, setup: 25, break: 10, back: 15, hp: 923, load: 60 },
+            { min: 3.2, max: 9.99, speed: 60, setup: 25, break: 10, back: 15, hp: 923, load: 80 }
         ],
         "S3": [
-            { min: 0, max: 0.99, speed: 80, setup: 30, break: 20, back: 15, hp: 25 },
-            { min: 1, max: 2, speed: 60, setup: 30, break: 20, back: 15, hp: 25 }
+            { min: 0, max: 0.99, speed: 80, setup: 30, break: 20, back: 15, hp: 25, load: 50 },
+            { min: 1, max: 2, speed: 60, setup: 30, break: 20, back: 15, hp: 25, load: 65 }
         ]
     };
 
-    // --- ⚙️ Auto Fill Logic (Removed Shear Logic) ---
     function autoFillParams() {
         const weight = parseFloat(document.getElementById('weight').value) || 0;
         const thickness = parseFloat(document.getElementById('thickness').value) || 0;
@@ -210,13 +293,13 @@
         }
         document.getElementById('calcLength').value = length.toFixed(2);
 
-        // SLIT Logic Only
         const machine = document.getElementById('machineName').value;
         
-        // Reset Values
         document.getElementById('slitSpeed').value = "";
         document.getElementById('slitSetup').value = "";
         document.getElementById('slitHP').value = ""; 
+        document.getElementById('percentHP').value = "";
+        document.getElementById('hpLoadShow').value = "-";
         document.getElementById('dbBreakTime').value = 0;
         document.getElementById('dbCoilBackTime').value = 0;
         document.getElementById('warningMsg').innerText = "";
@@ -232,6 +315,8 @@
                     document.getElementById('slitHP').value = spec.hp;
                     document.getElementById('dbBreakTime').value = spec.break;
                     document.getElementById('dbCoilBackTime').value = spec.back;
+                    document.getElementById('percentHP').value = spec.load;
+                    document.getElementById('hpLoadShow').value = spec.load + "%";
                     found = true;
                     break;
                 }
@@ -240,68 +325,115 @@
         }
     }
 
-    // --- ⚡ Energy Calculation Helper ---
-    function calculateEnergyCost(hp, minutes, ratePerUnit) {
-        if (!hp || !minutes) return 0;
-        const efficiency = 0.9;
-        const loadFactor = 0.8; 
-        
-        const inputKW = (hp * 0.746 * loadFactor) / efficiency;
-        const cost = inputKW * (minutes / 60) * ratePerUnit;
-        return cost;
+    function calculate() {
+        try {
+            autoFillParams(); 
+
+            const weightInput = parseFloat(document.getElementById('weight').value) || 0;
+            const coilQty = parseFloat(document.getElementById('coilQty').value) || 1;
+            const laborRatePerHour = parseFloat(document.getElementById('laborRate').value) || 0;
+            const laborRatePerMin = laborRatePerHour / 60;
+            const manpower = parseFloat(document.getElementById('manpower').value) || 0;
+            const elecRate = parseFloat(document.getElementById('elecRate').value) || 0; 
+            const totalLength = parseFloat(document.getElementById('calcLength').value) || 0;
+
+            let totalTime = 0;
+            let htmlRows = '';
+
+            const speed = parseFloat(document.getElementById('slitSpeed').value) || 0;
+            const setupPerCoil = parseFloat(document.getElementById('slitSetup').value) || 0;
+            const totalSetup = setupPerCoil * coilQty; 
+
+            const recoilOutPerCoil = parseFloat(document.getElementById('recoilOutTime').value) || 0;
+            const totalRecoilOut = recoilOutPerCoil * coilQty; 
+
+            const machineHP = parseFloat(document.getElementById('slitHP').value) || 0; 
+            const loadPercent = parseFloat(document.getElementById('percentHP').value) || 80;
+            
+            const breakCount = parseFloat(document.getElementById('breakCount').value) || 0;
+            const breakTimePerOne = parseFloat(document.getElementById('dbBreakTime').value) || 0;
+            const totalBreak = breakCount * breakTimePerOne; 
+
+            const isBack = document.getElementById('useCoilBack').checked;
+            const backTimePerCoil = parseFloat(document.getElementById('dbCoilBackTime').value) || 0;
+            const totalBackTime = isBack ? (backTimePerCoil * coilQty) : 0; 
+
+            const palletQty = parseFloat(document.getElementById('palletQty').value) || 0;
+            const palletPrice = parseFloat(document.getElementById('palletPrice').value) || 0;
+            const packingTimePerPallet = parseFloat(document.getElementById('packingTimePerPallet').value) || 0;
+            const totalPackingTime = palletQty * packingTimePerPallet;
+
+            const overhead = parseFloat(document.getElementById('overheadCost').value) || 0;
+            const handling = parseFloat(document.getElementById('handlingCost').value) || 0;
+
+            if(document.getElementById('machineName').value === "") { alert("กรุณาเลือกเครื่องจักร (Machine) ก่อนค่ะ"); return; }
+            if(speed === 0) { alert("กรุณาตรวจสอบข้อมูล Spec เครื่อง หรือ ความหนา (Thickness) อีกครั้งค่ะ"); return; }
+            if(weightInput === 0) { alert("⚠️ กรุณาใส่น้ำหนักม้วน (Weight) เพื่อคำนวณบาท/กก."); return; }
+            
+            const runTime = totalLength / speed;
+            
+            // Labor Time = Total Everything
+            totalTime = totalSetup + runTime + totalRecoilOut + totalBreak + totalBackTime + totalPackingTime;
+
+            // Energy Time = Only Setup + Running (As requested)
+            const energyTime = totalSetup + runTime;
+
+            htmlRows += `<tr><td>1. Setup Time (${coilQty} ม้วน)</td><td>${setupPerCoil} x ${coilQty}</td><td>${totalSetup.toFixed(2)} min</td></tr>`;
+            htmlRows += `<tr><td>2. Running Time</td><td>Len ${totalLength.toFixed(0)}m / Spd ${speed}</td><td>${runTime.toFixed(2)} min</td></tr>`;
+            htmlRows += `<tr><td>3. Recoil Out (${coilQty} ม้วน)</td><td>${recoilOutPerCoil} x ${coilQty}</td><td>${totalRecoilOut.toFixed(2)} min</td></tr>`;
+            if(breakCount > 0) htmlRows += `<tr><td>4. Break Time</td><td>${breakCount} ครั้ง</td><td>${totalBreak.toFixed(2)} min</td></tr>`;
+            if(isBack) htmlRows += `<tr><td>5. Coil Back</td><td>${backTimePerCoil} x ${coilQty}</td><td>${totalBackTime.toFixed(2)} min</td></tr>`;
+            if(palletQty > 0) htmlRows += `<tr><td>6. Packing Time</td><td>${palletQty} ลัง x ${packingTimePerPallet} min</td><td>${totalPackingTime.toFixed(2)} min</td></tr>`;
+
+            // 1. Labor
+            const totalLaborCost = totalTime * manpower * laborRatePerMin;
+            
+            // 2. Energy (Only Setup + Run)
+            const loadFactor = loadPercent / 100;
+            const totalEnergyCost = (machineHP * 0.746 * loadFactor / 0.9) * (energyTime/60) * elecRate;
+
+            // 3. Pallet Cost
+            const totalPalletCost = palletQty * palletPrice;
+
+            document.getElementById('resultBody').innerHTML = htmlRows;
+            document.getElementById('grandTime').innerText = totalTime.toFixed(2) + " นาที";
+            
+            document.getElementById('laborCostTotal').innerText = totalLaborCost.toFixed(2) + " บาท";
+            
+            document.getElementById('energyDetailText').innerText = `(HP ${machineHP} x Load ${loadPercent}%) [คิด ${energyTime.toFixed(2)} min]`;
+            document.getElementById('energyCostTotal').innerText = totalEnergyCost.toFixed(2) + " บาท";
+            
+            document.getElementById('palletCostTotal').innerText = `${totalPalletCost.toFixed(2)} บาท (${palletQty} x ${palletPrice})`;
+            document.getElementById('overheadTotal').innerText = overhead.toFixed(2) + " บาท";
+            document.getElementById('handlingTotal').innerText = handling.toFixed(2) + " บาท";
+
+            const grandTotal = totalLaborCost + totalEnergyCost + totalPalletCost + overhead + handling;
+            const costPerKg = grandTotal / weightInput;
+
+            document.getElementById('grandTotalCost').innerText = grandTotal.toFixed(2) + " บาท";
+            document.getElementById('costPerKg').innerText = costPerKg.toFixed(4) + " THB/kg";
+
+            document.getElementById('resultArea').style.display = 'block';
+        } catch(e) {
+            alert("⚠️ Error: " + e.message + "\n\n(กรุณาลบโค้ดเก่าทั้งหมดทิ้งก่อนวางโค้ดใหม่นะครับ)");
+        }
     }
 
-    // --- 💰 Main Calculation (SLIT Only) ---
-    function calculate() {
-        autoFillParams(); 
+    function exportToExcel() {
+        const table = document.getElementById("resultTable");
+        const wb = XLSX.utils.table_to_book(table, {sheet: "SlitCost"});
+        XLSX.writeFile(wb, "Slit_Cost_Calculation.xlsx");
+    }
 
-        const laborRatePerHour = parseFloat(document.getElementById('laborRate').value) || 0;
-        const laborRatePerMin = laborRatePerHour / 60;
-        const manpower = parseFloat(document.getElementById('manpower').value) || 0;
-        const elecRate = parseFloat(document.getElementById('elecRate').value) || 0; 
-        const totalLength = parseFloat(document.getElementById('calcLength').value) || 0;
-
-        let totalTime = 0;
-        let machineHP = 0;
-        let htmlRows = '';
-
-        // === SLIT CALCULATION ===
-        const speed = parseFloat(document.getElementById('slitSpeed').value) || 0;
-        const setup = parseFloat(document.getElementById('slitSetup').value) || 0;
-        machineHP = parseFloat(document.getElementById('slitHP').value) || 0; 
-        
-        const breakCount = parseFloat(document.getElementById('breakCount').value) || 0;
-        const breakTimePerOne = parseFloat(document.getElementById('dbBreakTime').value) || 0;
-        const totalBreak = breakCount * breakTimePerOne;
-
-        const isBack = document.getElementById('useCoilBack').checked;
-        const backTime = isBack ? (parseFloat(document.getElementById('dbCoilBackTime').value) || 0) : 0;
-
-        // Validation
-        if(document.getElementById('machineName').value === "") { alert("กรุณาเลือกเครื่องจักร (Machine) ก่อนค่ะ"); return; }
-        if(speed === 0) { alert("กรุณาตรวจสอบข้อมูล Spec เครื่อง หรือ ความหนา (Thickness) อีกครั้งค่ะ"); return; }
-        
-        const runTime = totalLength / speed;
-        totalTime = setup + runTime + totalBreak + backTime;
-
-        htmlRows += `<tr><td>1. Setup Time</td><td>Auto DB</td><td>${setup.toFixed(2)} min</td></tr>`;
-        htmlRows += `<tr><td>2. Running Time</td><td>Len ${totalLength.toFixed(0)}m / Spd ${speed}</td><td>${runTime.toFixed(2)} min</td></tr>`;
-        htmlRows += `<tr><td>3. Break/CoilBack</td><td>Break(${breakCount}) + Back(${isBack?'Yes':'No'})</td><td>${(totalBreak + backTime).toFixed(2)} min</td></tr>`;
-
-        // Final Costing
-        const totalLaborCost = totalTime * manpower * laborRatePerMin;
-        const totalEnergyCost = calculateEnergyCost(machineHP, totalTime, elecRate);
-
-        document.getElementById('resultBody').innerHTML = htmlRows;
-        document.getElementById('grandTime').innerText = totalTime.toFixed(2) + " นาที";
-        
-        document.getElementById('laborCostTotal').innerText = totalLaborCost.toFixed(2) + " บาท";
-        document.getElementById('energyCostTotal').innerText = totalEnergyCost.toFixed(2) + " บาท";
-        
-        const grandTotal = totalLaborCost + totalEnergyCost;
-        document.getElementById('grandTotalCost').innerText = grandTotal.toFixed(2) + " บาท";
-
-        document.getElementById('resultArea').style.display = 'block';
+    function saveAsImage() {
+        window.scrollTo(0,0);
+        const element = document.getElementById("captureArea");
+        html2canvas(element).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Slit_Cost_Summary.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
     }
 </script>
 

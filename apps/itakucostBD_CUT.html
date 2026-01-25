@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคำนวณต้นทุน - SHEAR V.3.1 (Updated DB)</title>
+    <title>ระบบคำนวณต้นทุน - SHEAR V.10 (Multi-Coil + Export)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
         
@@ -27,15 +30,30 @@
         }
         .unit { width: 70px; margin-left: 10px; color: #7f8c8d; font-size: 0.9em; }
 
-        /* Highlight Auto Calculated Fields */
+        /* Highlight & Inputs */
         .auto-fill { background-color: #fdedec; color: #c0392b; font-weight: bold; border: 1px solid #fadbd8; cursor: not-allowed; }
+        .smart-input { background-color: #eafaf1; border: 1px solid #2ecc71 !important; color: #27ae60; font-weight: bold; }
+        .cost-input { background-color: #f4ecf7; border: 1px solid #9b59b6 !important; color: #8e44ad; }
+        .highlight-hp { background-color: #fff8e1; color: #d35400; font-weight: bold; border: 1px solid #f39c12; }
+        .highlight-pallet { background-color: #e8daef; color: #8e44ad; font-weight: bold; border: 1px solid #af7ac5; }
+        .highlight-coil { background-color: #d6eaf8; border: 1px solid #3498db !important; color: #2e86c1; font-weight: bold; }
 
         /* Button */
         .btn-calc { 
             width: 100%; padding: 18px; border: none; background: #e74c3c; color: white; 
             font-size: 1.5em; font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+            margin-bottom: 15px;
         }
         .btn-calc:hover { background: #c0392b; transform: translateY(-3px); }
+
+        /* Export Buttons */
+        .export-group { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        .btn-export {
+            padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white;
+            display: flex; align-items: center; gap: 5px; font-size: 1em;
+        }
+        .btn-excel { background: #217346; } .btn-excel:hover { background: #1e6b40; }
+        .btn-img { background: #e67e22; } .btn-img:hover { background: #d35400; }
 
         /* Result Area */
         #resultArea { margin-top: 35px; display: none; background: #fffde7; padding: 25px; border-radius: 12px; border: 2px dashed #f1c40f; }
@@ -43,21 +61,21 @@
         th, td { border: 1px solid #ecf0f1; padding: 14px; text-align: right; }
         td:first-child { text-align: left; font-weight: bold; color: #2c3e50; }
         th { background: #34495e; color: white; text-align: center; font-weight: normal; }
-
-        /* Palette Option Radio */
-        .radio-group { flex: 1.5; display: flex; gap: 15px; }
-        .radio-item { display: flex; align-items: center; gap: 5px; font-size: 0.9em; cursor: pointer; }
-        .radio-item input { width: 18px; height: 18px; cursor: pointer; }
-
+        
         .sub-total-row { background: #fdf2e9; color: #d35400; font-weight: bold; }
         .grand-total-row { background: #d5f5e3; color: #196f3d; font-weight: bold; font-size: 1.3em; }
+        .per-kg-row { background: #2c3e50; color: #f1c40f; font-weight: bold; font-size: 1.4em; text-shadow: 1px 1px 2px black; }
+        
+        /* Radio Group */
+        .radio-group { flex: 1.5; display: flex; gap: 15px; }
+        .radio-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>✂️ SHEAR Cost Calculator V.3.1</h1>
-    <div class="sub-title">ระบบคำนวณต้นทุน - อัปเดตข้อมูลเครื่องจักรใหม่ (New DB)</div>
+<div class="container" id="captureArea">
+    <h1>✂️ SHEAR Cost Calculator V.10</h1>
+    <div class="sub-title">ระบบคำนวณต้นทุน - SHEAR (Multi-Coil + Export)</div>
 
     <div class="box">
         <div class="box-title">1. ข้อมูลวัตถุดิบ (Raw Material)</div>
@@ -78,53 +96,72 @@
 
         <div class="row">
             <label>ความหนา (Thickness):</label>
-            <input type="number" id="thickness" placeholder="1.2" oninput="calculateMaterial()"> <span class="unit">mm</span>
+            <input type="number" id="thickness" placeholder="1.2" oninput="handleMaterialChange()"> <span class="unit">mm</span>
         </div>
         <div class="row">
-            <label>น้ำหนักม้วน (Weight):</label>
-            <input type="number" id="weight" placeholder="5000" oninput="calculateMaterial()"> <span class="unit">kg</span>
+            <label>น้ำหนักรวม (Total Weight):</label>
+            <input type="number" id="weight" placeholder="เช่น 20000" oninput="handleMaterialChange()"> <span class="unit">kg</span>
         </div>
+        
+        <div class="row">
+            <label style="color: #2980b9;">🌀 จำนวนม้วน (No. of Coils):</label>
+            <input type="number" id="coilQty" class="highlight-coil" value="1" min="1" oninput="handleMaterialChange()"> <span class="unit">ม้วน</span>
+        </div>
+
         <div class="row">
             <label>หน้ากว้าง (Width):</label>
-            <input type="number" id="width" placeholder="1219" oninput="calculateMaterial()"> <span class="unit">mm</span>
+            <input type="number" id="width" placeholder="1219" oninput="handleMaterialChange()"> <span class="unit">mm</span>
         </div>
         <div class="row">
-            <label style="color: #c0392b;">📏 ความยาวม้วน (Total Length):</label>
+            <label style="color: #c0392b;">📏 ความยาวรวม (Total Length):</label>
             <input type="text" id="calcLength" class="auto-fill" readonly value="0.00"> <span class="unit">m</span>
         </div>
     </div>
 
     <div class="box">
-        <div class="box-title">2. ตั้งค่าการตัดและแพ็ค (Packing Logic) 📦</div>
+        <div class="box-title">2. ตั้งค่าการตัดและแพ็ค (Smart Packing) 📦</div>
         
         <div class="row">
             <label style="color:#2980b9; font-size:1.1em;">ความยาวตัด (Cut Length):</label>
-            <input type="number" id="cutLength" placeholder="เช่น 2438" oninput="calculateMaterial()"> <span class="unit">mm</span>
+            <input type="number" id="cutLength" placeholder="เช่น 2438" oninput="handleMaterialChange()"> <span class="unit">mm</span>
         </div>
         
-        <div class="row" style="background: #ebf5fb; border:1px solid #a9cce3; border-radius:6px; padding:10px;">
-            <label style="color: #2980b9;">📄 จำนวนแผ่นที่ได้ (Total Sheets):</label>
-            <input type="text" id="totalSheetsShow" readonly style="background:transparent; border:none; font-weight:bold; font-size:1.2em; color:#2980b9;" value="0"> 
-            <span class="unit" style="color:#2980b9;">แผ่น</span>
+        <div class="row" style="background: #fff8e1; border: 1px solid #f39c12; padding: 10px; border-radius: 6px;">
+            <label style="color:#d35400;">⚡ %HP Real Load (New DB):</label>
+            <input type="text" id="hpLoadShow" class="highlight-hp" readonly value="-" style="width: 80px; text-align:center;"> 
+            <span style="font-size:0.8em; color:#d35400; margin-left:10px;">(จากตาราง)</span>
+            <input type="number" id="percentHP" style="width: 60px; margin-left: 10px;" placeholder="Override"> 
+        </div>
+
+        <div class="row" style="margin-top: 15px;">
+            <label>📄 จำนวนแผ่นรวม (Total Sheets):</label>
+            <input type="text" id="totalSheetsShow" class="auto-fill" readonly value="0"> <span class="unit">แผ่น</span>
         </div>
 
         <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
 
-        <div class="row">
-            <label>จำนวนแผ่นต่อลัง (Qty/Pallet):</label>
-            <input type="number" id="sheetsPerPallet" placeholder="500" oninput="calculatePalletsPreview()"> <span class="unit">แผ่น</span>
+        <div class="row" style="background: #fdfefe; border: 1px solid #abebc6; padding: 15px; border-radius: 8px;">
+            <label style="color: #27ae60;">🟢 จำนวนแผ่นต่อลัง (Qty/Pallet):</label>
+            <input type="number" id="sheetsPerPallet" class="smart-input" placeholder="ใส่จำนวน..." oninput="updateWeightFromQty()"> 
+            <span class="unit">แผ่น</span>
         </div>
         
-        <div class="row">
+        <div class="row" style="background: #fdfefe; border: 1px solid #abebc6; padding: 15px; border-radius: 8px; margin-top: -10px;">
+            <label style="color: #27ae60;">⚖️ น้ำหนักต่อลัง (Weight/Pallet):</label>
+            <input type="number" id="weightPerPallet" class="smart-input" placeholder="ใส่ Kg..." oninput="updateQtyFromWeight()"> 
+            <span class="unit">kg</span>
+        </div>
+
+        <div class="row" style="margin-top: 15px;">
             <label style="color:#d35400;">กรณีมีเศษ (Remainder Logic):</label>
             <div class="radio-group">
                 <div class="radio-item">
                     <input type="radio" id="optSeparate" name="remOption" value="separate" checked onchange="calculatePalletsPreview()">
-                    <label for="optSeparate">📦 แยกลังใหม่ (+1 ลัง)</label>
+                    <label for="optSeparate">📦 แยกลังใหม่ (+1)</label>
                 </div>
                 <div class="radio-item">
                     <input type="radio" id="optMerge" name="remOption" value="merge" onchange="calculatePalletsPreview()">
-                    <label for="optMerge">📥 รวมลังเดิม (ไม่เพิ่มลัง)</label>
+                    <label for="optMerge">📥 รวมลังเดิม</label>
                 </div>
             </div>
         </div>
@@ -142,7 +179,24 @@
     <input type="hidden" id="dbCoilBackTime">
     
     <div class="box">
-        <div class="box-title">3. ค่าแรงและค่าไฟ</div>
+        <div class="box-title">3. ตั้งค่าต้นทุนการผลิต (Cost Settings) 💰</div>
+        
+        <div class="row" style="background: #e8daef; border: 1px solid #af7ac5; padding: 10px; border-radius: 6px;">
+            <label style="color:#8e44ad;">🪵 ค่าไม้ต่อลัง (Auto Pallet Cost):</label>
+            <input type="number" id="palletCostUnit" class="highlight-pallet" placeholder="Auto" readonly> <span class="unit">บาท/ลัง</span>
+        </div>
+
+        <div class="row" style="margin-top: 15px;">
+            <label style="color:#8e44ad;">🏢 ค่าโสหุ้ย (Overhead):</label>
+            <input type="number" id="overheadCost" class="cost-input" value="500"> <span class="unit">บาท/งาน</span>
+        </div>
+        <div class="row">
+            <label style="color:#8e44ad;">🚜 ค่าเคลื่อนย้าย (Handling):</label>
+            <input type="number" id="handlingCost" class="cost-input" value="100"> <span class="unit">บาท/งาน</span>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
         <div class="row">
             <label>ค่าแรง (Labor Rate):</label>
             <input type="number" id="laborRate" value="75"> <span class="unit">บาท/ชม.</span>
@@ -156,205 +210,265 @@
             <input type="number" id="elecRate" value="5.0"> <span class="unit">บาท/Unit</span>
         </div>
         <div class="row">
-             <label>Coil Back:</label>
-             <div class="checkbox-wrapper"><input type="checkbox" id="useCoilBack"> <span style="font-size:0.9em;">ม้วนกลับ</span></div>
+             <label>Coil Back (ทุกม้วน):</label>
+             <div class="checkbox-wrapper"><input type="checkbox" id="useCoilBack"> <span style="font-size:0.9em;">มีการม้วนกลับ (x จำนวนม้วน)</span></div>
         </div>
     </div>
 
     <button class="btn-calc" onclick="calculateFinal()">✂️ คำนวณต้นทุนทันที (Calculate) ✂️</button>
 
     <div id="resultArea">
-        <h2 style="text-align: center; color: #c0392b;">📊 ผลการคำนวณ (Cost Breakdown)</h2>
+        <h2 style="text-align: center; color: #c0392b;">📊 สรุปต้นทุนการผลิต (Total Cost Breakdown)</h2>
         <div id="warnMsg" style="color:red; text-align:center;"></div>
-        <table>
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th width="40%">รายการ (Item)</th>
+                    <th width="30%">รายละเอียด (Details)</th>
+                    <th width="30%">จำนวน (Amount)</th>
+                </tr>
+            </thead>
             <tbody id="resultBody"></tbody>
             <tfoot>
-                <tr class="sub-total-row"><td colspan="2">รวมเวลา (Total Time)</td><td id="grandTime">0.00 min</td></tr>
-                <tr><td colspan="2">ค่าแรง (Labor Cost)</td><td id="laborCostTotal">0.00 THB</td></tr>
-                <tr><td colspan="2">ค่าไฟ (Energy Cost)</td><td id="energyCostTotal">0.00 THB</td></tr>
-                <tr class="grand-total-row"><td colspan="2" align="center">รวมต้นทุน (Grand Total)</td><td id="grandTotalCost">0.00 THB</td></tr>
+                <tr class="sub-total-row"><td colspan="2">1. รวมเวลาผลิต (Total Time)</td><td id="grandTime">0.00 min</td></tr>
+                
+                <tr><td colspan="2">2. ต้นทุนค่าแรง (Labor Cost)</td><td id="laborCostTotal">0.00 THB</td></tr>
+                <tr><td colspan="2">3. ต้นทุนค่าไฟฟ้า (Energy Cost) <small style="color:gray" id="energyDetailText"></small></td><td id="energyCostTotal">0.00 THB</td></tr>
+                <tr><td colspan="2">4. ค่าไม้พาเลท (Pallet Cost) <small style="color:gray" id="palletDetailText"></small></td><td id="palletMatTotal">0.00 THB</td></tr>
+                <tr><td colspan="2">5. ค่าโสหุ้ย (Overhead)</td><td id="overheadTotal">0.00 THB</td></tr>
+                <tr><td colspan="2">6. ค่าเคลื่อนย้าย (Handling)</td><td id="handlingTotal">0.00 THB</td></tr>
+
+                <tr class="grand-total-row"><td colspan="2" align="center">รวมต้นทุนการผลิต (Grand Total)</td><td id="grandTotalCost">0.00 THB</td></tr>
+                <tr class="per-kg-row"><td colspan="2" align="center">💰 ต้นทุนต่อกิโลกรัม (Cost per Kg) 💰</td><td id="costPerKg">0.00 THB/kg</td></tr>
             </tfoot>
         </table>
+
+        <div class="export-group">
+            <button class="btn-export btn-excel" onclick="exportToExcel()">
+                📥 Export Excel
+            </button>
+            <button class="btn-export btn-img" onclick="saveAsImage()">
+                📸 Save Image
+            </button>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- 💾 DATABASE UPDATE ---
-    // อัปเดตข้อมูลตามภาพล่าสุดครับ! (stroke ช้าลง, setup SK ปรับตามจริง)
-    // setup = Setup Time (15), pallet = SETUP SK, back = COIL BACK (10)
+    // --- DATABASE ---
     const machineDB = {
         "L1": [ 
-            { min: 400, max: 499, stroke: 2.0, hp: 212, setup: 15, pallet: 10, back: 10 }, 
-            { min: 500, max: 999, stroke: 2.5, hp: 212, setup: 15, pallet: 10, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 3.0, hp: 212, setup: 15, pallet: 10, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 4.0, hp: 212, setup: 15, pallet: 10, back: 10 } 
+            { min: 400, max: 499, stroke: 2, hp: 212, setup: 15, pallet: 10, back: 10, load: 20, palletCost: 250 },
+            { min: 500, max: 999, stroke: 2.5, hp: 212, setup: 15, pallet: 10, back: 10, load: 20, palletCost: 300 },
+            { min: 1000, max: 1999, stroke: 3, hp: 212, setup: 15, pallet: 10, back: 10, load: 20, palletCost: 400 },
+            { min: 2000, max: 3000, stroke: 4, hp: 212, setup: 15, pallet: 10, back: 10, load: 20, palletCost: 500 }
         ],
         "L2": [ 
-            { min: 400, max: 499, stroke: 2.0, hp: 186, setup: 15, pallet: 7, back: 10 }, 
-            { min: 500, max: 999, stroke: 2.4, hp: 186, setup: 15, pallet: 7, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 2.8, hp: 186, setup: 15, pallet: 7, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 3.0, hp: 186, setup: 15, pallet: 7, back: 10 } 
+            { min: 400, max: 499, stroke: 2, hp: 186, setup: 15, pallet: 7, back: 10, load: 25, palletCost: 250 },
+            { min: 500, max: 999, stroke: 2.4, hp: 186, setup: 15, pallet: 7, back: 10, load: 25, palletCost: 300 },
+            { min: 1000, max: 1999, stroke: 2.8, hp: 186, setup: 15, pallet: 7, back: 10, load: 25, palletCost: 400 },
+            { min: 2000, max: 3000, stroke: 3, hp: 186, setup: 15, pallet: 7, back: 10, load: 25, palletCost: 500 }
         ],
         "L3": [ 
-            { min: 400, max: 499, stroke: 2.0, hp: 520, setup: 15, pallet: 5, back: 10 }, 
-            { min: 500, max: 999, stroke: 2.5, hp: 520, setup: 15, pallet: 5, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 2.7, hp: 520, setup: 15, pallet: 5, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 3.0, hp: 520, setup: 15, pallet: 5, back: 10 } 
+            { min: 400, max: 499, stroke: 2, hp: 520, setup: 15, pallet: 5, back: 10, load: 30, palletCost: 250 },
+            { min: 500, max: 999, stroke: 2.5, hp: 520, setup: 15, pallet: 5, back: 10, load: 30, palletCost: 300 },
+            { min: 1000, max: 2500, stroke: 2.7, hp: 520, setup: 15, pallet: 5, back: 10, load: 30, palletCost: 400 }, 
+            { min: 2501, max: 6000, stroke: 3, hp: 520, setup: 15, pallet: 5, back: 10, load: 30, palletCost: 500 }  
         ],
         "M1": [ 
-            { min: 400, max: 499, stroke: 8.0, hp: 100, setup: 15, pallet: 10, back: 10 }, 
-            { min: 500, max: 999, stroke: 9.0, hp: 100, setup: 15, pallet: 10, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 10.0, hp: 100, setup: 15, pallet: 10, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 12.0, hp: 100, setup: 15, pallet: 10, back: 10 } 
+            { min: 400, max: 999, stroke: 8, hp: 100, setup: 15, pallet: 10, back: 10, load: 70, palletCost: 250 },
+            { min: 1000, max: 2001, stroke: 9, hp: 100, setup: 15, pallet: 10, back: 10, load: 70, palletCost: 300 },
+            { min: 2002, max: 3050, stroke: 10, hp: 100, setup: 15, pallet: 10, back: 10, load: 70, palletCost: 400 },
+            { min: 3051, max: 8000, stroke: 18, hp: 100, setup: 15, pallet: 10, back: 10, load: 65, palletCost: 500 }
         ],
         "M2": [ 
-            { min: 400, max: 499, stroke: 7.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 500, max: 999, stroke: 8.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 9.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 10.0, hp: 70, setup: 15, pallet: 10, back: 10 } 
+            { min: 400, max: 999, stroke: 7, hp: 70, setup: 15, pallet: 10, back: 10, load: 80, palletCost: 250 },
+            { min: 1000, max: 2001, stroke: 8, hp: 70, setup: 15, pallet: 10, back: 10, load: 75, palletCost: 300 },
+            { min: 2002, max: 3050, stroke: 9, hp: 70, setup: 15, pallet: 10, back: 10, load: 70, palletCost: 400 },
+            { min: 3051, max: 8000, stroke: 15, hp: 70, setup: 15, pallet: 10, back: 10, load: 65, palletCost: 500 }
         ],
         "M3": [ 
-            { min: 400, max: 499, stroke: 7.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 500, max: 999, stroke: 8.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 9.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 10.0, hp: 70, setup: 15, pallet: 10, back: 10 } 
+            { min: 400, max: 999, stroke: 7, hp: 70, setup: 15, pallet: 10, back: 10, load: 80, palletCost: 250 },
+            { min: 1000, max: 2001, stroke: 8, hp: 70, setup: 15, pallet: 10, back: 10, load: 75, palletCost: 300 },
+            { min: 2002, max: 3050, stroke: 9, hp: 70, setup: 15, pallet: 10, back: 10, load: 70, palletCost: 400 },
+            { min: 3051, max: 8000, stroke: 15, hp: 70, setup: 15, pallet: 10, back: 10, load: 65, palletCost: 500 }
         ],
         "M4": [ 
-            { min: 400, max: 499, stroke: 7.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 500, max: 999, stroke: 8.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 1000, max: 1999, stroke: 9.0, hp: 70, setup: 15, pallet: 10, back: 10 }, 
-            { min: 2000, max: 3000, stroke: 10.0, hp: 70, setup: 15, pallet: 10, back: 10 } 
+            { min: 400, max: 999, stroke: 7, hp: 70, setup: 15, pallet: 10, back: 10, load: 80, palletCost: 250 },
+            { min: 1000, max: 2001, stroke: 8, hp: 70, setup: 15, pallet: 10, back: 10, load: 75, palletCost: 300 },
+            { min: 2002, max: 3050, stroke: 9, hp: 70, setup: 15, pallet: 10, back: 10, load: 70, palletCost: 400 },
+            { min: 3051, max: 8000, stroke: 15, hp: 70, setup: 15, pallet: 10, back: 10, load: 65, palletCost: 500 }
         ]
     };
 
-    // --- 1. Calculate Basic Material & Sheets ---
-    function calculateMaterial() {
-        const weight = parseFloat(document.getElementById('weight').value) || 0;
+    function getOneSheetWeight() {
+        const thickness = parseFloat(document.getElementById('thickness').value) || 0;
+        const widthMm = parseFloat(document.getElementById('width').value) || 0;
+        const cutLenMm = parseFloat(document.getElementById('cutLength').value) || 0;
+        if (thickness > 0 && widthMm > 0 && cutLenMm > 0) {
+            return (thickness * widthMm * cutLenMm * 7.85) / 1000000;
+        }
+        return 0;
+    }
+
+    function handleMaterialChange() {
+        const weightInput = parseFloat(document.getElementById('weight').value) || 0;
         const thickness = parseFloat(document.getElementById('thickness').value) || 0;
         const width = parseFloat(document.getElementById('width').value) || 0;
         const cutLenMm = parseFloat(document.getElementById('cutLength').value) || 0;
         
         let lengthM = 0;
-        let totalSheets = 0;
-
-        // 1.1 Calc Length
-        if(thickness > 0 && width > 0) {
-            lengthM = weight / (thickness * 7.85 * (width/1000));
-        }
+        if(thickness > 0 && width > 0) lengthM = weightInput / (thickness * 7.85 * (width/1000));
         document.getElementById('calcLength').value = lengthM.toFixed(2);
 
-        // 1.2 Calc Sheets (โชว์ทันทีตามคำสั่ง)
-        if(cutLenMm > 0 && lengthM > 0) {
-            totalSheets = Math.floor(lengthM / (cutLenMm / 1000)); // ปัดเศษลงเพราะแผ่นไม่เต็มตัดไม่ได้
-        }
+        let totalSheets = 0;
+        if(cutLenMm > 0 && lengthM > 0) totalSheets = Math.floor(lengthM / (cutLenMm / 1000));
         document.getElementById('totalSheetsShow').value = totalSheets;
 
+        updateWeightFromQty();
         autoFillDB();
+    }
+
+    function updateWeightFromQty() {
+        const qty = parseFloat(document.getElementById('sheetsPerPallet').value);
+        const oneShtW = getOneSheetWeight();
+        if (!isNaN(qty) && oneShtW > 0) {
+            document.getElementById('weightPerPallet').value = (qty * oneShtW).toFixed(2);
+        } else if (isNaN(qty)) document.getElementById('weightPerPallet').value = "";
         calculatePalletsPreview();
     }
 
-    // --- 2. Auto Fill DB ---
+    function updateQtyFromWeight() {
+        const limitW = parseFloat(document.getElementById('weightPerPallet').value);
+        const oneShtW = getOneSheetWeight();
+        if (!isNaN(limitW) && limitW > 0 && oneShtW > 0) {
+            document.getElementById('sheetsPerPallet').value = Math.floor(limitW / oneShtW);
+        } else if (isNaN(limitW)) document.getElementById('sheetsPerPallet').value = "";
+        calculatePalletsPreview();
+    }
+
     function autoFillDB() {
         const machine = document.getElementById('machineName').value;
         const cutLen = parseFloat(document.getElementById('cutLength').value) || 0;
         
-        // Reset
         document.getElementById('timePerStroke').value = "";
-        document.getElementById('shearHP').value = "";
-        document.getElementById('setupTime').value = "";
-        document.getElementById('palletTime').value = ""; 
-        document.getElementById('dbCoilBackTime').value = "";
-
+        document.getElementById('percentHP').value = "";
+        document.getElementById('hpLoadShow').value = "-";
+        document.getElementById('palletCostUnit').value = "";
+        
         if (machine && cutLen > 0) {
             const specs = machineDB[machine];
-            let found = false;
             for (let spec of specs) {
                 if (cutLen >= spec.min && cutLen <= spec.max) {
                     document.getElementById('timePerStroke').value = spec.stroke;
                     document.getElementById('shearHP').value = spec.hp;
                     document.getElementById('setupTime').value = spec.setup;
-                    document.getElementById('palletTime').value = spec.pallet; // ดึง Setup SK มา
+                    document.getElementById('palletTime').value = spec.pallet; 
                     document.getElementById('dbCoilBackTime').value = spec.back;
-                    found = true;
+                    document.getElementById('percentHP').value = spec.load;
+                    document.getElementById('hpLoadShow').value = spec.load + "%";
+                    document.getElementById('palletCostUnit').value = spec.palletCost;
                     break;
                 }
             }
         }
     }
 
-    // --- 3. Preview Pallet Count (Logic แยก/รวมลัง) ---
     function calculatePalletsPreview() {
         const totalSheets = parseInt(document.getElementById('totalSheetsShow').value) || 0;
         const qtyPerPallet = parseInt(document.getElementById('sheetsPerPallet').value) || 0;
         const isSeparate = document.getElementById('optSeparate').checked;
-        
         let palletCount = 0;
-
         if (totalSheets > 0 && qtyPerPallet > 0) {
-            const fullPallets = Math.floor(totalSheets / qtyPerPallet);
-            const remainder = totalSheets % qtyPerPallet;
-
-            if (remainder === 0) {
-                palletCount = fullPallets;
-            } else {
-                if (isSeparate) {
-                    // แยก: เพิ่มอีก 1 ลัง
-                    palletCount = fullPallets + 1;
-                } else {
-                    // รวม: ใส่ลังเดิม (แต่ถ้าไม่มีลังเลย ก็ต้องนับ 1)
-                    palletCount = (fullPallets === 0) ? 1 : fullPallets;
-                }
-            }
+            const full = Math.floor(totalSheets / qtyPerPallet);
+            const rem = totalSheets % qtyPerPallet;
+            palletCount = (rem === 0) ? full : (isSeparate ? full + 1 : (full===0?1:full));
         }
         document.getElementById('calcPallets').value = palletCount;
     }
 
-    // --- 4. Final Calculation ---
     function calculateFinal() {
-        calculateMaterial(); // Refresh all
-        
-        const totalSheets = parseInt(document.getElementById('totalSheetsShow').value) || 0;
-        const palletCount = parseFloat(document.getElementById('calcPallets').value) || 0;
-        
-        // Params
-        const strokeTime = parseFloat(document.getElementById('timePerStroke').value);
-        const setup = parseFloat(document.getElementById('setupTime').value) || 0;
-        const palletSetTime = parseFloat(document.getElementById('palletTime').value) || 0;
-        const hp = parseFloat(document.getElementById('shearHP').value) || 0;
-        const isBack = document.getElementById('useCoilBack').checked;
-        const backTime = isBack ? (parseFloat(document.getElementById('dbCoilBackTime').value) || 0) : 0;
+        try {
+            handleMaterialChange(); 
+            const weightInput = parseFloat(document.getElementById('weight').value) || 0;
+            const totalSheets = parseInt(document.getElementById('totalSheetsShow').value) || 0;
+            const palletCount = parseFloat(document.getElementById('calcPallets').value) || 0;
+            
+            const coilQty = parseFloat(document.getElementById('coilQty').value) || 1;
+            const strokeTime = parseFloat(document.getElementById('timePerStroke').value);
+            
+            // Setup & Back Logic (Multiply by Coils)
+            const setupPerCoil = parseFloat(document.getElementById('setupTime').value) || 0;
+            const totalSetup = setupPerCoil * coilQty;
 
-        // Rate
-        const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
-        const manpower = parseFloat(document.getElementById('manpower').value) || 0;
-        const elecRate = parseFloat(document.getElementById('elecRate').value) || 0;
+            const palletSetTime = parseFloat(document.getElementById('palletTime').value) || 0;
+            const hp = parseFloat(document.getElementById('shearHP').value) || 0;
+            
+            let loadPercent = parseFloat(document.getElementById('percentHP').value) || 0;
+            
+            const isBack = document.getElementById('useCoilBack').checked;
+            const backTimePerCoil = parseFloat(document.getElementById('dbCoilBackTime').value) || 0;
+            const totalBackTime = isBack ? (backTimePerCoil * coilQty) : 0;
+            
+            const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
+            const manpower = parseFloat(document.getElementById('manpower').value) || 0;
+            const elecRate = parseFloat(document.getElementById('elecRate').value) || 0;
+            const palletCostUnit = parseFloat(document.getElementById('palletCostUnit').value) || 0;
+            const overhead = parseFloat(document.getElementById('overheadCost').value) || 0;
+            const handling = parseFloat(document.getElementById('handlingCost').value) || 0;
 
-        if(!strokeTime) { alert("⚠️ กรุณาเลือก Machine และใส่ Cut Length ให้ถูกต้อง (400-3000 mm) ตามตารางค่ะ"); return; }
+            if(!strokeTime) { alert("⚠️ กรุณาตรวจสอบ Machine / Cut Length"); return; }
+            if(weightInput === 0) { alert("⚠️ กรุณาใส่น้ำหนักม้วน (Weight)"); return; }
 
-        // Time Calc
-        const runTime = (totalSheets * strokeTime) / 60;
-        const handlingTime = palletCount * palletSetTime; // ใช้จำนวนลังที่คำนวณจาก Logic มาคูณเวลา SK ของเครื่องนั้นๆ
-        const totalTime = setup + runTime + handlingTime + backTime;
+            const runTime = (totalSheets * strokeTime) / 60;
+            const handlingTime = palletCount * palletSetTime;
+            const totalTime = totalSetup + runTime + handlingTime + totalBackTime;
+            
+            const laborCost = totalTime * manpower * (laborRate/60);
+            const loadFactor = loadPercent / 100;
+            const energyCost = (hp * 0.746 * loadFactor / 0.9) * (totalTime/60) * elecRate;
+            const totalPalletMatCost = palletCount * palletCostUnit;
+            const grandTotal = laborCost + energyCost + totalPalletMatCost + overhead + handling;
+            const costPerKg = grandTotal / weightInput;
 
-        // Cost Calc
-        const laborCost = totalTime * manpower * (laborRate/60);
-        // สูตรไฟ: (HP * 0.746 * Load 0.8) / Eff 0.9
-        const energyCost = (hp * 0.746 * 0.8 / 0.9) * (totalTime/60) * elecRate;
+            let html = "";
+            html += `<tr><td>1. Setup (${coilQty} coils)</td><td>${setupPerCoil} min x ${coilQty}</td><td>${totalSetup.toFixed(2)} min</td></tr>`;
+            html += `<tr><td>2. Running</td><td>${totalSheets} pcs (${strokeTime}s)</td><td>${runTime.toFixed(2)} min</td></tr>`;
+            html += `<tr><td>3. Pallet Time</td><td>${palletCount} plts x ${palletSetTime}min</td><td>${handlingTime.toFixed(2)} min</td></tr>`;
+            if(isBack) html += `<tr><td>4. Coil Back</td><td>${backTimePerCoil} min x ${coilQty}</td><td>${totalBackTime.toFixed(2)} min</td></tr>`;
 
-        // Render
-        let html = "";
-        html += `<tr><td>1. Setup</td><td>ตั้งเครื่อง (ตามตาราง)</td><td>${setup} min</td></tr>`;
-        html += `<tr><td>2. Running</td><td>${totalSheets} แผ่น x ${strokeTime}s</td><td>${runTime.toFixed(2)} min</td></tr>`;
-        html += `<tr><td>3. Pallet</td><td>${palletCount} ลัง x ${palletSetTime} min</td><td>${handlingTime.toFixed(2)} min</td></tr>`;
-        if(isBack) html += `<tr><td>4. Coil Back</td><td>เก็บม้วน (ตามตาราง)</td><td>${backTime} min</td></tr>`;
+            document.getElementById('resultBody').innerHTML = html;
+            document.getElementById('grandTime').innerText = totalTime.toFixed(2) + " min";
+            document.getElementById('laborCostTotal').innerText = laborCost.toFixed(2) + " THB";
+            document.getElementById('energyDetailText').innerText = `(HP ${hp} x Load ${loadPercent}%)`;
+            document.getElementById('energyCostTotal').innerText = energyCost.toFixed(2) + " THB";
+            document.getElementById('palletDetailText').innerText = `(${palletCostUnit} ฿/ลัง)`;
+            document.getElementById('palletMatTotal').innerText = `${totalPalletMatCost.toFixed(2)} THB`;
+            document.getElementById('overheadTotal').innerText = overhead.toFixed(2) + " THB";
+            document.getElementById('handlingTotal').innerText = handling.toFixed(2) + " THB";
+            document.getElementById('grandTotalCost').innerText = grandTotal.toFixed(2) + " THB";
+            document.getElementById('costPerKg').innerText = costPerKg.toFixed(4) + " THB/kg";
+            document.getElementById('resultArea').style.display = 'block';
+        } catch(e) {
+            alert("⚠️ Error: " + e.message);
+        }
+    }
 
-        document.getElementById('resultBody').innerHTML = html;
-        document.getElementById('grandTime').innerText = totalTime.toFixed(2) + " min";
-        document.getElementById('laborCostTotal').innerText = laborCost.toFixed(2) + " THB";
-        document.getElementById('energyCostTotal').innerText = energyCost.toFixed(2) + " THB";
-        document.getElementById('grandTotalCost').innerText = (laborCost + energyCost).toFixed(2) + " THB";
+    function exportToExcel() {
+        const table = document.getElementById("resultTable");
+        const wb = XLSX.utils.table_to_book(table, {sheet: "ShearCost"});
+        XLSX.writeFile(wb, "Shear_Cost_Calculation.xlsx");
+    }
 
-        document.getElementById('resultArea').style.display = 'block';
+    function saveAsImage() {
+        window.scrollTo(0,0);
+        const element = document.getElementById("captureArea");
+        html2canvas(element).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Shear_Cost_Summary.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
     }
 </script>
 
