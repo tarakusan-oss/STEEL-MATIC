@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คู่มือการใช้งานระบบ (Advanced Manual) | STEEL-MATIC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Prompt', sans-serif; scroll-behavior: smooth; }
+        
+        /* Glass Effect */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Typography & Components */
+        .section-title { 
+            font-size: 1.75rem; font-weight: 800; color: #38bdf8; 
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 10px;
+        }
+        .wow-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 2px 5px rgba(245, 158, 11, 0.4);
+        }
+        .sub-head { color: #94a3b8; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .field-list { list-style: none; padding: 0; }
+        .field-list li { 
+            margin-bottom: 0.8rem; padding-left: 1rem; border-left: 3px solid #475569; 
+            transition: all 0.2s;
+        }
+        .field-list li:hover { border-left-color: #38bdf8; background: rgba(56,189,248,0.05); }
+        .field-name { color: #e2e8f0; font-weight: 600; }
+        .field-desc { color: #94a3b8; font-size: 0.9rem; }
+        
+        /* Sidebar */
+        .nav-link {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px; margin-bottom: 4px; border-radius: 8px;
+            color: #cbd5e1; transition: all 0.2s; font-size: 0.95rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 600;
+        }
+        
+        .code-pill { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: #a5b4fc; font-size: 0.8em; }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <header class="max-w-7xl mx-auto flex justify-between items-end mb-10 pb-4 border-b border-slate-700/50">
+        <div>
+            <a href="index.html" class="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-2 transition text-sm font-bold">
+                <i class="fas fa-chevron-left"></i> กลับหน้า Dashboard
+            </a>
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-300">
+                MANUAL & DOCS
+            </h1>
+            <p class="text-slate-400 mt-1">คู่มือการใช้งานระบบฉบับเจาะลึก (Engineering Deep Dive)</p>
+        </div>
+        <div class="hidden md:block text-right">
+            <div class="text-xs text-slate-500 font-bold uppercase tracking-widest">System Version</div>
+            <div class="text-xl font-mono text-blue-400 font-bold">13.2.0</div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-12 gap-8">
+        
+        <aside class="col-span-12 lg:col-span-3">
+            <div class="glass-panel p-4 sticky top-8">
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Select Module</div>
+                <nav>
+                    <a href="#storage" class="nav-link"><i class="fas fa-warehouse w-5 text-center"></i> 1. ค่าฝาก (Storage)</a>
+                    <a href="#leveler" class="nav-link"><i class="fas fa-tools w-5 text-center"></i> 2. Leveler Expert</a>
+                    <a href="#weight" class="nav-link"><i class="fas fa-balance-scale w-5 text-center"></i> 3. Actual Weight</a>
+                    <a href="#calsteel" class="nav-link"><i class="fas fa-calculator w-5 text-center"></i> 4. CALSTEEL Hub</a>
+                    <a href="#shear" class="nav-link"><i class="fas fa-scissors w-5 text-center"></i> 5. Cost Shear</a>
+                    <a href="#slit" class="nav-link"><i class="fas fa-compact-disc w-5 text-center"></i> 6. Cost Slit</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="col-span-12 lg:col-span-9 space-y-12">
+
+            <section id="storage" class="glass-panel p-8">
+                <div class="section-title">
+                    <i class="fas fa-warehouse text-blue-500"></i> 1. ระบบคำนวณค่าฝาก <span class="wow-badge">Smart Logic</span>
+                </div>
+                <p class="text-slate-300 mb-6">
+                    โปรแกรมบริหารจัดการคลังสินค้า (Warehouse Billing) ที่แก้ปัญหาความสับสนเรื่องการนับวันและการคำนวณวันฟรี
+                    ระบบออกแบบมาเพื่อป้องกัน Human Error ในการเรียกเก็บเงินลูกค้า
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="sub-head"><i class="fas fa-keyboard"></i> ข้อมูลนำเข้า (Input Detail)</div>
+                        <ul class="field-list">
+                            <li>
+                                <span class="field-name">📅 วันที่เข้า-ออก (In/Out)</span><br>
+                                <span class="field-desc">ระบุช่วงเวลาฝาก ระบบรองรับการข้ามเดือน/ข้ามปีอย่างถูกต้อง</span>
+                            </li>
+                            <li>
+                                <span class="field-name">📝 เงื่อนไขการนับวัน (Condition)</span><br>
+                                <span class="field-desc">จุดเด่นคือรองรับสัญญา 3 รูปแบบ:
+                                    <br>• <span class="code-pill">Type 1</span> คิดทั้งวันเข้าและออก (+1 วัน)
+                                    <br>• <span class="code-pill">Type 2</span> คิดเฉพาะวันเข้า
+                                    <br>• <span class="code-pill">Type 3</span> ไม่คิดวันหัวท้าย (-1 วัน)
+                                </span>
+                            </li>
+                            <li>
+                                <span class="field-name">🎁 วันฟรี (Free Days)</span><br>
+                                <span class="field-desc">ระบบจะหักลบวันฟรีออกจากยอดรวมให้อัตโนมัติ</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="sub-head"><i class="fas fa-bolt text-yellow-400"></i> ความเจ๋งของระบบ (Highlight)</div>
+                        <div class="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg mb-4">
+                            <h4 class="font-bold text-blue-300 mb-1">🚀 Auto Deadline Prediction</h4>
+                            <p class="text-sm text-slate-300">
+                                ทันทีที่ใส่วันเข้าและวันฟรี ระบบจะคำนวณล่วงหน้าให้เลยว่า 
+                                <strong>"ต้องเอาของออกภายในวันที่เท่าไหร่ถึงจะฟรี?"</strong> 
+                                และ <strong>"เริ่มเสียเงินบาทแรกวันที่เท่าไหร่"</strong> 
+                                (ช่วยให้ พนักงาน ตอบลูกค้าได้ทันทีโดยไม่ต้องเปิดปฏิทินนับนิ้ว)
+                            </p>
+                        </div>
+                        <div class="sub-head"><i class="fas fa-file-export"></i> ผลลัพธ์ (Output)</div>
+                        <ul class="text-sm text-slate-400 list-disc pl-4 space-y-1">
+                            <li>จำนวนวันที่คิดเงินจริง (Billable Days)</li>
+                            <li>ยอดเงินรวม (Grand Total)</li>
+                            <li>รองรับการ Export เป็นภาพ PNG เพื่อส่งไลน์หาลูกค้า</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="leveler" class="glass-panel p-8">
+                <div class="section-title">
+                    <i class="fas fa-tools text-cyan-500"></i> 2. Leveler Expert <span class="wow-badge">Engineering Core</span>
+                </div>
+                <p class="text-slate-300 mb-6">
+                    ระบบผู้ช่วยวิศวกรในการตั้งค่าเครื่องรีด (Leveler) โดยใช้สูตรคำนวณทางวิศวกรรมขั้นสูง (Metal Forming Theory) 
+                    แทนการกะระยะด้วยสายตา ช่วยยืดอายุการใช้งานเครื่องจักร
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="sub-head">📥 พารามิเตอร์ (Parameters)</div>
+                        <ul class="field-list">
+                            <li><span class="field-name">Thickness (mm)</span>: ความหนาเหล็ก</li>
+                            <li><span class="field-name">Yield Point (MPa)</span>: ค่าความแข็งแรงดึง (สำคัญมากต่อการดีดตัวกลับ)</li>
+                            <li><span class="field-name">Carbon (%)</span>: ปริมาณคาร์บอน (บ่งบอกความแข็งเปราะ)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="sub-head">🧠 ตรรกะเบื้องหลัง (Behind the Logic)</div>
+                        <p class="text-sm text-slate-400 mb-3">
+                            ระบบใช้สมการคำนวณการตั้ง Gap โดยชดเชยค่า Springback (การดีดตัวกลับ) ตามค่า Yield Point:
+                        </p>
+                        <div class="bg-slate-800 p-3 rounded text-xs font-mono text-green-400 mb-3">
+                            Entry Gap = t × (0.8 - (YP / 5000))<br>
+                            Exit Gap = t × (1 + (YP / 12000))
+                        </div>
+                        <p class="text-sm text-slate-300">
+                            <strong>*Wow Factor:*</strong> มีระบบ <span class="text-red-400 font-bold">Safety Check!</span> 
+                            ถ้าค่า Carbon > 0.15 หรือหนาเกิน 4mm ระบบจะขึ้นเตือนสีแดงทันที เพื่อป้องกัน Backup Roll แตก
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="weight" class="glass-panel p-8">
+                <div class="section-title">
+                    <i class="fas fa-balance-scale text-emerald-500"></i> 3. Actual Weight Match <span class="wow-badge">Algorithm</span>
+                </div>
+                <p class="text-slate-300 mb-6">
+                    สุดยอดอัลกอริทึมสำหรับแก้ปัญหา "น้ำหนักชั่งรวมหลายขนาด คำนวนไม่ตรง" ระบบจะทำการน้ำหนักทฤษฎี Reverse Engineer ตัวเลข 
+                    เพื่อให้ผลรวมเท่ากับน้ำหนักจริง 100.00% โดยที่ตัวเลขรายการยังถูกต้องตรงกับความเป็นจริงมากที่สุด (Humanized Numbers)
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="sub-head">🎯 วิธีการทำงาน</div>
+                        <ul class="field-list">
+                            <li>
+                                <span class="field-name">Step 1: Input Target</span><br>
+                                <span class="field-desc">ใส่น้ำหนักรวมจากตาชั่งจริง (Actual Total)</span>
+                            </li>
+                            <li>
+                                <span class="field-name">Step 2: Distribution Logic</span><br>
+                                <span class="field-desc">ระบบจะคำนวณสัดส่วน (Ratio) และกระจายน้ำหนักลงสู่แต่ละลัง</span>
+                            </li>
+                            <li>
+                                <span class="field-name">Step 3: Smart Rounding</span><br>
+                                <span class="field-desc">ระบบจะปัดเศษทศนิยมให้ลงท้ายด้วย 0 หรือ 5 (ตามธรรมชาติการชั่ง) แต่จะปรับเศษ (Remainder) ไปซ่อนในม้วนที่มีน้ำหนักมากที่สุดเพื่อความถูกต้อง</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="sub-head">📊 ระบบตรวจสอบ (Yield Monitor)</div>
+                        <div class="p-4 bg-emerald-900/30 border border-emerald-500/30 rounded-lg">
+                            <p class="text-sm text-emerald-200">
+                                ระบบมีการคำนวณ <strong>%Yield</strong> แบบ Real-time:<br>
+                                <span class="text-green-400">● 98-101% = สีเขียว (ปกติ)</span><br>
+                                <span class="text-red-400">● นอกเกณฑ์ = สีแดง (แจ้งเตือน)</span><br>
+                                <br>
+                                <em>ช่วยป้องกันพนักงานคีย์ข้อมูลผิดพลาด!</em>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="calsteel" class="glass-panel p-8">
+                <div class="section-title">
+                    <i class="fas fa-calculator text-amber-500"></i> 4. CALSTEEL V.2.8.1 <span class="wow-badge">Database</span>
+                </div>
+                <p class="text-slate-300 mb-6">
+                    Digital Handbook สำหรับคนขายเหล็ก รวมสูตรคำนวณและฐานข้อมูลวัสดุไว้ครบจบในที่เดียว 
+                    ไม่ต้องเปิดตาราง Density หรือจำค่า Coating อีกต่อไป
+                </p>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg">
+                        <h4 class="font-bold text-amber-400 mb-2">🔥 Built-in Database (ฐานข้อมูลในตัว)</h4>
+                        <p class="text-sm text-slate-300">
+                            ระบบฝังค่าความหนาแน่น (Density) ของเหล็กทุกเกรด (CR, GI, SS304, SS430, AL) 
+                            และค่าชั้นเคลือบ (Coating Z06-Z27, K06-K18) ไว้ในโค้ดแล้ว<br>
+                            เพียงแค่เลือก Dropdown ระบบจะดึงค่าคงที่มาคำนวณให้อัตโนมัติ แม่นยำกว่ากดเครื่องคิดเลขเอง 100%
+                        </p>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="bg-slate-800/50 p-4 rounded-lg">
+                            <span class="text-amber-400 font-bold">Feature: Weight Mode</span>
+                            <p class="text-xs text-slate-400 mt-1">คำนวณกลับไป-มาได้ (ใส่จำนวนได้น้ำหนัก / ใส่น้ำหนักได้จำนวนแผ่น)</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-4 rounded-lg">
+                            <span class="text-cyan-400 font-bold">Feature: Slit Mode</span>
+                            <p class="text-xs text-slate-400 mt-1">มีฟังก์ชัน Reverse Calculation คำนวณย้อนกลับจาก OD (วงนอก) เพื่อหาน้ำหนักได้ (เหมาะกับหน้างานวางแผนขนาดล่างหน้า)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="shear" class="glass-panel p-8">
+                <div class="section-title">
+                    <i class="fas fa-scissors text-rose-500"></i> 5. Cost Shear <span class="wow-badge">Costing</span>
+                </div>
+                <p class="text-slate-300 mb-6">
+                    ระบบวิเคราะห์ต้นทุนงานตัดแผ่น (Shearing) ที่ละเอียดที่สุด แยกแยะ Cost Driver ได้ถึง หลาย มิติ 
+                    พร้อมระบบเลือกเครื่องจักรอัจฉริยะ
+                </p>
+                <div class="bg-rose-500/10 border border-rose-500/30 p-5 rounded-lg mb-6">
+                    <h4 class="font-bold text-rose-300 mb-2"><i class="fas fa-robot"></i> Machine Spec Integration</h4>
+                    <p class="text-sm text-slate-300">
+                        เมื่อคุณเลือกเครื่องจักร (L1, L2, M1...) ระบบจะดึงข้อมูลเฉพาะของเครื่องนั้นๆ ออกมาทันที ได้แก่:
+                    </p>
+                    <ul class="text-xs text-rose-200 mt-2 grid grid-cols-2 gap-2 font-mono">
+                        <li>• Stroke Speed (วินาที/ครั้ง)</li>
+                        <li>• Setup Time (นาที)</li>
+                        <li>• HP Motor (แรงม้า)</li>
+                        <li>• %Load Factor (ภาระเครื่อง)</li>
+                    </ul>
+                </div>
+                <div class="sub-head">💰 Cost Breakdown Details</div>
+                <ul class="text-sm text-slate-400 space-y-2">
+                    <li><i class="fas fa-check text-green-500"></i> <strong>Energy Cost:</strong> คำนวณค่าไฟจาก HP x Load Factor x เวลาทำงานจริง</li>
+                    <li><i class="fas fa-check text-green-500"></i> <strong>Pallet Cost:</strong> คำนวณจำนวนพาเลทอัตโนมัติจากเงื่อนไขการแพ็ค (Smart Packing)</li>
+                    <li><i class="fas fa-check text-green-500"></i> <strong>Handling:</strong> คิดค่าขนย้ายและค่าแรงคนงานตาม Manhour</li>
+                </ul>
+            </section>
+
+            <section id="slit" class="glass-panel p-8">
+                <div class="section-title">
+                    <i class="fas fa-compact-disc text-purple-500"></i> 6. Cost Slit <span class="wow-badge">Complex Logic</span>
+                </div>
+                <p class="text-slate-300 mb-6">
+                    ระบบคำนวณต้นทุนงานผ่า (Slitting) ที่รองรับความซับซ้อนของกระบวนการผลิตจริง 
+                    เช่น การแบ่งคอยล์ (Break Coil) และการม้วนกลับ (Coil Back)
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-purple-900/20 p-5 rounded-lg border border-purple-500/20">
+                        <div class="sub-head text-purple-300 mt-0">⚠️ Spec Validation System</div>
+                        <p class="text-sm text-slate-400">
+                            ระบบมี <strong>Guardian Logic</strong> คอยตรวจสอบความหนาเหล็กเทียบกับ Spec เครื่องจักร (S1-S3)
+                            <br><br>
+                            <span class="text-red-400 font-bold">Example:</span> หากเลือกเครื่อง S3 (เครื่องเล็ก) แต่ใส่เหล็กหนา 3mm ระบบจะแจ้งเตือนทันทีว่า "เครื่องไม่รองรับ" ช่วยป้องกันความเสียหายก่อนวางแผนผลิต
+                        </p>
+                    </div>
+                    <div>
+                        <div class="sub-head">⏱️ Time-Based Costing</div>
+                        <p class="text-sm text-slate-400 mb-2">ระบบคิดเวลาทุกขั้นตอนเพื่อความแม่นยำ:</p>
+                        <ul class="text-xs text-slate-300 font-mono space-y-1 bg-slate-800 p-3 rounded">
+                            <li>Total Time = Setup </li>
+                            <li>+ Running (Length/Speed)</li>
+                            <li>+ Recoil Out (เอาลูกออก)</li>
+                            <li>+ Break Time (แบ่งคอยล์)</li>
+                            <li>+ Coil Back (ม้วนกลับ)</li>
+                        </ul>
+                        <p class="text-xs text-slate-500 mt-2">*คำนวณแยก Setup+Run สำหรับค่าไฟ และ Total Time สำหรับค่าแรง*</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="text-center py-10 mt-10 border-t border-slate-700/50 text-slate-600 text-sm">
+        <p>&copy; 2026 STEEL-MATIC Engineering System. Developed for High-Performance Management.</p>
+    </footer>
+
+</body>
+</html>
