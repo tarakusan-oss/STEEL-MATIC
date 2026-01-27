@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดเรียงไม้ตัด - RESHEAR V.3 (Mix & Group)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap');
+        
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f7; color: #2c3e50; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        h1 { text-align: center; color: #2c3e50; border-bottom: 4px solid #8e44ad; padding-bottom: 15px; }
+        .sub-title { text-align: center; color: #7f8c8d; margin-bottom: 25px; }
+
+        /* Config Box */
+        .config-box { background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .config-title { font-weight: bold; color: #8e44ad; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+
+        .input-group { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px; }
+        .input-item { display: flex; flex-direction: column; }
+        .input-item label { font-size: 0.9em; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        .input-item input { padding: 10px; border: 1px solid #bdc3c7; border-radius: 5px; width: 100px; text-align: center; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #34495e; color: white; padding: 10px; }
+        td { border: 1px solid #eee; padding: 8px; text-align: center; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-add { background: #27ae60; } .btn-add:hover { background: #219150; }
+        .btn-calc { background: #8e44ad; width: 100%; font-size: 1.2em; margin-top: 20px; } .btn-calc:hover { background: #71368a; }
+        .btn-del { background: #c0392b; padding: 5px 10px; font-size: 0.8em; }
+
+        /* Result Layout */
+        .pattern-list { margin-top: 30px; }
+        .pattern-card { 
+            display: flex; gap: 20px; background: #fff; border: 2px solid #ecf0f1; 
+            border-radius: 10px; padding: 20px; margin-bottom: 20px; 
+            align-items: flex-start; flex-wrap: wrap;
+        }
+        .pattern-info { flex: 1; min-width: 200px; }
+        .pattern-visual { flex: 0 0 300px; background: #eee; border: 1px solid #333; }
+        
+        .stat-badge { 
+            display: inline-block; padding: 5px 10px; border-radius: 15px; 
+            font-size: 0.8em; font-weight: bold; margin-right: 5px; margin-bottom: 5px; color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🧩 RESHEAR V.3: Mixed Layout (รวมไซส์)</h1>
+    <div class="sub-title">ระบบจัดเรียงแบบผสมไซส์ + จัดกลุ่ม Pattern อัตโนมัติ</div>
+
+    <div class="config-box">
+        <div class="config-title">1. ขนาดแผ่นแม่ (Master Sheet)</div>
+        <div class="input-group">
+            <div class="input-item">
+                <label>กว้าง (W):</label>
+                <input type="number" id="masterW" value="1219">
+            </div>
+            <div class="input-item">
+                <label>ยาว (L):</label>
+                <input type="number" id="masterL" value="2438">
+            </div>
+            <div class="input-item">
+                <label>ระยะขอบ (Trim):</label>
+                <input type="number" id="trim" value="0">
+            </div>
+        </div>
+    </div>
+
+    <div class="config-box">
+        <div class="config-title">2. รายการสินค้า (Target List)</div>
+        <div class="input-group" style="background:#f8f9fa; padding:15px; border-radius:8px;">
+            <div class="input-item"><label>กว้าง (w):</label><input type="number" id="newW" placeholder="mm"></div>
+            <div class="input-item"><label>ยาว (l):</label><input type="number" id="newL" placeholder="mm"></div>
+            <div class="input-item"><label>จำนวน (Qty):</label><input type="number" id="newQty" placeholder="pcs"></div>
+            <div class="input-item"><label>&nbsp;</label><button class="btn btn-add" onclick="addItem()">➕ เพิ่ม</button></div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ขนาด (W x L)</th>
+                    <th>ต้องการ</th>
+                    <th>ผลิตได้</th>
+                    <th>ขาด/เกิน</th>
+                    <th>ลบ</th>
+                </tr>
+            </thead>
+            <tbody id="itemListBody"></tbody>
+        </table>
+    </div>
+
+    <button class="btn btn-calc" onclick="calculateOptimization()">🚀 คำนวณการจัดเรียง (Optimize)</button>
+
+    <div id="resultSection" style="display:none;">
+        <h2 style="margin-top:30px; text-align:center;">📋 แผนการตัด (Cutting Plan)</h2>
+        <div style="text-align:center; margin-bottom:20px; font-size:1.1em;">
+            ใช้แผ่นแม่ทั้งหมด: <span id="totalSheetsUsed" style="font-weight:bold; color:#8e44ad; font-size:1.3em;">0</span> แผ่น
+            <span style="color:#7f8c8d; font-size:0.8em;">(Yield Avg: <span id="avgYield">0%</span>)</span>
+        </div>
+        <div id="patternList" class="pattern-list"></div>
+    </div>
+</div>
+
+<script>
+    let items = [];
+    const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22', '#1abc9c', '#34495e'];
+
+    // Sample Data
+    window.onload = function() {
+        items.push({ id: 1, w: 200, l: 300, req: 300, done: 0 });
+        items.push({ id: 2, w: 400, l: 270, req: 600, done: 0 });
+        items.push({ id: 3, w: 590, l: 390, req: 500, done: 0 });
+        renderTable();
+    };
+
+    function addItem() {
+        const w = parseFloat(document.getElementById('newW').value);
+        const l = parseFloat(document.getElementById('newL').value);
+        const qty = parseInt(document.getElementById('newQty').value);
+        if(w && l && qty) {
+            items.push({ id: Date.now(), w, l, req: qty, done: 0 });
+            renderTable();
+            document.getElementById('newW').value = '';
+            document.getElementById('newL').value = '';
+            document.getElementById('newQty').value = '';
+        }
+    }
+
+    function removeItem(idx) {
+        items.splice(idx, 1);
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('itemListBody');
+        tbody.innerHTML = '';
+        items.forEach((item, idx) => {
+            const diff = item.done - item.req;
+            const diffText = diff >= 0 ? `+${diff}` : `${diff}`;
+            const diffColor = diff >= 0 ? 'green' : 'red';
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.w} x ${item.l}</td>
+                    <td>${item.req}</td>
+                    <td id="done-${idx}">${item.done}</td>
+                    <td style="color:${diffColor}; font-weight:bold;">${diffText}</td>
+                    <td><button class="btn btn-del" onclick="removeItem(${idx})">x</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    // --- 🧠 CORE LOGIC: Guillotine Strip Packing (Mixed) ---
+    function calculateOptimization() {
+        const mW = parseFloat(document.getElementById('masterW').value);
+        const mL = parseFloat(document.getElementById('masterL').value);
+        const trim = parseFloat(document.getElementById('trim').value) || 0;
+        
+        const usableW = mW - (trim*2);
+        const usableL = mL - (trim*2);
+
+        // Reset Production
+        items.forEach(i => i.done = 0);
+        let remaining = JSON.parse(JSON.stringify(items)); // Work copy
+        
+        // Sort items by Length Descending (Height priority for strips)
+        // This helps in forming efficient strips
+        remaining.sort((a, b) => b.l - a.l);
+
+        let patterns = [];
+        let totalSheets = 0;
+        let weightedYieldSum = 0;
+
+        let safetyLoop = 0;
+        
+        // Loop until all demands are met
+        while (remaining.some(i => i.req > 0) && safetyLoop < 500) {
+            safetyLoop++;
+            
+            // Generate ONE best layout for current needs
+            let layout = generateLayout(usableW, usableL, remaining);
+            
+            if (layout.parts.length === 0) break; // Cannot fit anything
+
+            // Calculate how many times we can repeat this layout
+            // Max repeat is limited by the item with lowest (Required / UsedInLayout) ratio
+            let maxRepeat = Infinity;
+            layout.counts.forEach(c => {
+                // Find original item in 'remaining' array
+                let remItem = remaining.find(r => r.id === c.id);
+                if (remItem && c.count > 0) {
+                    let possible = Math.ceil(remItem.req / c.count); // Allow slight over production logic later
+                    // Strict calc: how many full sheets until one item is satisfied?
+                    // Let's settle for satisfying at least ONE item fully or partial
+                    // To avoid infinite loop of 1-by-1, we try to satisfy the constraining item.
+                    
+                    // Simple approach: Just produce 1 sheet? No, we want grouping.
+                    // Calculate exact needed for this item
+                    let needed = remItem.req;
+                    let sheetsForThis = Math.ceil(needed / c.count);
+                    if (sheetsForThis < maxRepeat) maxRepeat = sheetsForThis;
+                }
+            });
+            
+            // If optimization is weird and maxRepeat is huge, cap it? 
+            if (maxRepeat === Infinity) maxRepeat = 1;
+            if (maxRepeat <= 0) maxRepeat = 1; // Should not happen
+
+            // Update remaining
+            layout.counts.forEach(c => {
+                let remItem = remaining.find(r => r.id === c.id);
+                if (remItem) {
+                    remItem.req -= (c.count * maxRepeat); 
+                    // Update global items production
+                    let globItem = items.find(g => g.id === c.id);
+                    if(globItem) globItem.done += (c.count * maxRepeat);
+                }
+            });
+
+            // Store Pattern
+            patterns.push({
+                repeat: maxRepeat,
+                layout: layout,
+                yieldVal: layout.yieldVal
+            });
+
+            totalSheets += maxRepeat;
+            weightedYieldSum += (layout.yieldVal * maxRepeat);
+        }
+
+        renderResults(patterns, mW, mL, totalSheets, weightedYieldSum);
+        renderTable(); // Update status table
+    }
+
+    function generateLayout(W, L, pool) {
+        // Shelf / Strip heuristic
+        // 1. Find the tallest remaining item to start a strip
+        // 2. Fill the strip width-wise with items that fit the strip height
+        
+        let currentY = 0;
+        let placements = [];
+        let itemCounts = {}; // {id: count}
+        let usedArea = 0;
+
+        // Clone pool for simulation within single sheet
+        // Note: We don't decrement 'req' here, we just check if req > 0
+        // But to fill a sheet, we can place more than req if needed? 
+        // No, try to stick to needed. But since we multiply layout later, 
+        // we just assume we have infinite supply of 'needed' items for this layout design
+        // EXCEPT if req is very small.
+        // For V.3 Simplicity: Assume infinite supply of the types available. 
+        // Priority is mixing types to fill space.
+
+        while (currentY < L) {
+            // Find candidate for new strip: Tallest item that fits remaining L
+            let candidates = pool.filter(i => i.req > 0 && i.l <= (L - currentY));
+            if (candidates.length === 0) break;
+
+            // Sort candidates by Length Descending
+            candidates.sort((a, b) => b.l - a.l);
+            let stripBase = candidates[0]; // The tallest one defines strip height
+            let stripH = stripBase.l;
+            
+            let currentX = 0;
+            
+            // Fill the strip width-wise
+            while (currentX < W) {
+                // Find item that fits in remaining Width (W - currentX) AND fits in Strip Height (stripH)
+                // Ideally, length should be close to stripH to maximize yield
+                // Items can be rotated? Let's stick to fixed orientation for now as per V.1 logic request,
+                // but we can mix different items.
+                
+                let rowCandidates = pool.filter(i => 
+                    i.req > 0 && 
+                    i.w <= (W - currentX) && 
+                    i.l <= stripH // Must fit in strip height
+                );
+
+                if (rowCandidates.length === 0) break; // End of strip
+
+                // Best fit: Largest Width? Or Length closest to stripH?
+                // Priority: Length closest to stripH (minimize vertical gap in strip), then Max Width
+                rowCandidates.sort((a, b) => {
+                    let diffH_A = stripH - a.l;
+                    let diffH_B = stripH - b.l;
+                    if (diffH_A !== diffH_B) return diffH_A - diffH_B; // Smallest height diff wins
+                    return b.w - a.w; // Then widest wins
+                });
+
+                let best = rowCandidates[0];
+
+                placements.push({
+                    id: best.id,
+                    x: currentX,
+                    y: currentY,
+                    w: best.w,
+                    l: best.l,
+                    colorIdx: items.findIndex(x => x.id === best.id)
+                });
+
+                // Count
+                if (!itemCounts[best.id]) itemCounts[best.id] = 0;
+                itemCounts[best.id]++;
+                
+                usedArea += (best.w * best.l);
+                currentX += best.w;
+                
+                // Note: We don't decrement pool.req here because we want to see 
+                // how many can fit in one sheet maximally.
+                // However, if we only need 1 piece, we shouldn't place 100 on the sheet.
+                // But implementing strict count check within layout gen is complex for grouping.
+                // Let's assume we fill the sheet to the brim for high yield.
+            }
+
+            currentY += stripH;
+        }
+
+        return {
+            parts: placements,
+            counts: Object.keys(itemCounts).map(k => ({id: parseInt(k), count: itemCounts[k]})),
+            yieldVal: (usedArea / (W * L)) * 100
+        };
+    }
+
+    // --- 🎨 RENDER ---
+    function renderResults(patterns, mW, mL, totalSheets, yieldSum) {
+        const container = document.getElementById('patternList');
+        container.innerHTML = '';
+        document.getElementById('resultSection').style.display = 'block';
+        
+        document.getElementById('totalSheetsUsed').innerText = totalSheets;
+        document.getElementById('avgYield').innerText = (totalSheets>0 ? (yieldSum/totalSheets).toFixed(2) : 0) + "%";
+
+        patterns.forEach((pat, idx) => {
+            // Create Card
+            const card = document.createElement('div');
+            card.className = 'pattern-card';
+            
+            // Visual Canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = (mL / mW) * 300;
+            canvas.className = 'pattern-visual';
+            const ctx = canvas.getContext('2d');
+            const scale = 300 / mW;
+
+            // Draw Master
+            ctx.fillStyle = "white";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+            
+            // Draw Parts
+            pat.layout.parts.forEach(p => {
+                ctx.fillStyle = colors[p.colorIdx % colors.length];
+                ctx.fillRect(p.x * scale, p.y * scale, p.w * scale, p.l * scale);
+                ctx.strokeStyle = "#333";
+                ctx.strokeRect(p.x * scale, p.y * scale, p.w * scale, p.l * scale);
+            });
+
+            // Info Section
+            let infoHtml = `
+                <h3 style="margin-top:0; color:#2c3e50;">แบบที่ ${idx+1} (ใช้ ${pat.repeat} แผ่น)</h3>
+                <div style="margin-bottom:10px;">
+                    <span style="font-weight:bold; color:#27ae60;">Yield: ${pat.layout.yieldVal.toFixed(2)}%</span>
+                </div>
+                <div><b>รายการที่ได้ใน 1 แผ่น:</b></div>
+                <div style="margin-top:5px;">
+            `;
+            
+            pat.layout.counts.forEach(c => {
+                let item = items.find(i => i.id === c.id);
+                let color = colors[items.findIndex(x => x.id === c.id) % colors.length];
+                infoHtml += `
+                    <span class="stat-badge" style="background:${color}">
+                        ${item.w}x${item.l} = ${c.count} ชิ้น
+                    </span>
+                `;
+            });
+            infoHtml += `</div>
+                <div style="margin-top:15px; font-size:0.9em; color:#7f8c8d;">
+                    * ตัดทั้งหมด ${pat.repeat} แผ่น จะได้ชิ้นงานรวม: <br>
+                    ${pat.layout.counts.map(c => {
+                        let item = items.find(i => i.id === c.id);
+                        return `- ${item.w}x${item.l}: <b>${c.count * pat.repeat}</b> ชิ้น`;
+                    }).join('<br>')}
+                </div>
+            `;
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'pattern-info';
+            infoDiv.innerHTML = infoHtml;
+
+            card.appendChild(canvas);
+            card.appendChild(infoDiv);
+            container.appendChild(card);
+        });
+    }
+</script>
+
+</body>
+</html>
